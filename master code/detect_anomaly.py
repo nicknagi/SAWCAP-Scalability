@@ -8,7 +8,7 @@ from sklearn import linear_model
 import numpy as np
 import subprocess
 
-servers = ['172.30.0.170', '172.30.0.154', '172.30.0.98']
+servers = ['172.31.15.58']
 interval = 2  # interval to determine phase change
 
 # structure of phase database
