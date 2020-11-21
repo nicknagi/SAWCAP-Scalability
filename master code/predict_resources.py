@@ -8,7 +8,7 @@ from sklearn import linear_model
 import numpy as np
 import subprocess
 
-servers = ['172.31.15.58']
+servers = ['172.31.15.58', '172.31.1.111']
 interval = 2  # interval to determine phase change
 
 # structure of phase database
@@ -46,53 +46,16 @@ cur_phase = ""
 
 
 def handler(signal_received, frame):
-    global phase_database, algo
     # Handle any cleanup here
     print('Exiting after saving the current database')
     with open('/home/ubuntu/data/phase_db_' + algo, 'wb') as f:
         pickle.dump(phase_database, f)
     exit(0)
 
-
 def predict_naive(cur_phase):
-    global prev1_resource
     return prev1_resource
 
-
-def predict_individual_lasso(model, X):
-    # print(X)
-    return model.predict(X)
-
-def predict_individual_agg(model, X):
-    # print(X)
-    return model.predict(X)
-
-
-def predict_lasso(cur_phase):
-    global phase_database, prev1_resource
-    # get the models.  Number of models should be the number of resources
-    models = phase_database[cur_phase]["models"]
-    if len(models) == 0:
-        # no models so far, just return the naive result
-        return prev1_resource
-    else:
-        # make prediction for each model
-        try:
-            predictions = []
-            for i in range(len(models)):
-                pred = predict_individual_lasso (models[i],
-                                                 [[prev2_resource[i],
-                                                   prev1_resource[i]]])
-                # prediction is returned as a 1D Array
-                predictions.append(float(pred[0]))
-            return predictions
-        except Exception as e:
-            print("Probably not fitted model", e)
-            return prev1_resource
-
-
 def predict_agg(cur_phase):
-    global phase_database, prev1_resource
     # get the models.  Number of models should be the number of resources
     models = phase_database[cur_phase]["models"]
     if len(models) == 0:
@@ -114,32 +77,20 @@ def predict_agg(cur_phase):
         except Exception as e:
             print("Probably not fitted model", e)
             return prev1_resource
-    # global prev1_resource
-    # return prev1_resource
 
 
 def prediction_helper(cur_phase):
-    global algo
-    if algo == "simple":
-        return predict_naive(cur_phase)
-    elif algo == "lasso":
-        return predict_lasso(cur_phase)
-    elif algo == "agg":
+    if algo == "agg":
         return predict_agg(cur_phase)
 
 
 def get_prediction(cur_phase):
-    global phase_database, prev1_resource, prev2_resource, num_resources
-
     # if no phase available
     if cur_phase == "":
-        # print(" Empty current phase")
         return [0] * num_resources
     # if not there yet
     if cur_phase not in phase_database:
-        # print(" Not in Phase DB yet")
         return prev1_resource, "unseen"
-    # print("Existing phase in DB")
     # if no model has been built yet, just use naive prediction
     if len(phase_database[cur_phase]["models"]) == 0:
         return prev1_resource, "seen"
@@ -148,7 +99,6 @@ def get_prediction(cur_phase):
 
 
 def parse_resource_agg(file):
-    global servers, cur_phase
     # takes an input file which has one line per server for CPU and Mem
     # returns an aggregate of three
     lines = []
@@ -174,34 +124,7 @@ def parse_resource_agg(file):
 
     return resource_usage
 
-def read_remote_profile(server):
-        # accumulate threaddumps
-        ssh = subprocess.Popen(['timeout' ,'1.5', 'ssh', server, 'cat', '/home/ubuntu/data/threaddump_data'],
-                       stdout=subprocess.PIPE)
-        with open("./threaddump_agg",'a') as f:
-            for line in ssh.stdout:
-                # timeout heuristics
-                if(len(line) == 0):
-                    print("Anomaly Detected.  The following is the stacktrace ")
-                    print(cur_phase)
-                    sys.exit(0)
-                f.write(line)
-
-        # accumulate resource usage
-        ssh = subprocess.Popen(['timeout' ,'1.5', 'ssh', server, 'cat', '/home/ubuntu/data/resource_data'],
-                       stdout=subprocess.PIPE)
-        with open("./resource_agg",'a') as f:
-            for line in ssh.stdout:
-                # print("Read ", line)
-                if(len(line) == 0):
-                    print("Anomaly Detected.  The following is the stacktrace ")
-                    print(cur_phase)
-                    sys.exit(0)
-                f.write(line)
-
-
 def stacktrace_helper():
-    global servers
     # this function connects to the servers, fetches the threaddump, aggregates
     # them and extract threaddump and resource usage information from them
     # returns a list containing the threaddump and resource info
@@ -223,7 +146,6 @@ def stacktrace_helper():
         command = "timeout --foreground 10 ssh -q -t " + s + " 'cat /home/ubuntu/data/resource_data' " \
                                      ">> ./resource_agg"
         os.system(command)
-        # read_remote_profile(s)
 
     functions = []
     with open("./threaddump_agg") as f:
@@ -239,7 +161,6 @@ def detect_phase_change(old_trace, cur_trace):
     # phase change is detected by comparing the set of functions between
     # the current timestamp with the previous timestamp
 
-    # print("Number of functions in current trace ", len(cur_trace))
     # calculate stack_sim
     # if no functions in both sets, it is idle phase
     if len(old_trace) == 0 and len(cur_trace) == 0:
@@ -274,20 +195,15 @@ def form_phase_string(old_trace, cur_trace, changed):
 
 
 def add_models(cur_phase, cur_res):
-    # intiialize LASSO models with the number of resources
-    global phase_database, algo
-    # print("*** Number of resources during model init ", len(cur_res))
+    global phase_database
     for res in cur_res:
-        if algo == 'lasso':
-            phase_database[cur_phase]["models"].append(
-                linear_model.Lasso(alpha=0.1))
-        elif algo == 'agg':
+        if algo == 'agg':
             phase_database[cur_phase]["models"].append(0)
 
 
 def add_profile(cur_phase, prev2_res, prev1_res, cur_res):
     global phase_database
-    # print(prev2_res, prev1_res, cur_res)
+
     # get the number of resources
     num_res = len(cur_res)
 
@@ -302,7 +218,6 @@ def add_profile(cur_phase, prev2_res, prev1_res, cur_res):
 def format_data(cur_phase, res_index):
     # format data from the temporary profile collected
     # res_index tells the resource we are modeling for e.g. CPU or memory
-    global phase_database, batch_size
     temp_data = phase_database[cur_phase]["temp_data"]
     X = []
     Y = []
@@ -312,60 +227,11 @@ def format_data(cur_phase, res_index):
         Y.append(temp_data[i][res_index][2])
     return X, Y
 
-
-def generate_synthetic(cur_phase, model):
-    # generates synthetic data based on existing model so that we can
-    # retrieve old model info
-    global phase_database
-    temp_data = phase_database[cur_phase]["temp_data"]
-    num_data_points = 5
-    X=[]
-    Y=[]
-
-    # TODO somehow kep track of the max and min values so that data generation
-    # is successful
-    for i in range(num_data_points):
-        X.append([np.random.randint(low=1, high=100, size=1)[0],
-                  np.random.randint(low=1, high=100, size=1)[0]])
-
-    Y = model.predict(X)
-    # print("Synthetic ", X, Y)
-    return X, Y
-
-
-def update_lasso(cur_phase):
-    # update using the batch of data
-    global phase_database, prev1_resource
-
-    # do it for individual resources
-    # print("Number of models ", len(phase_database[cur_phase]["models"]))
-    # print("Number of resources ", len(prev1_resource))
-    for i in range(len(prev1_resource)):
-        X, Y = format_data(cur_phase, i)
-        print(X, Y)
-        model = phase_database[cur_phase]["models"][i]
-        # TODO generate synthetic data using the existing model
-        tempX = []
-        tempY = []
-        try:
-            tempX, tempY = generate_synthetic(cur_phase, model)
-        except Exception as e:
-            print("Probably not fitted model", e)
-
-        X.extend(tempX)
-        Y.extend(tempY)
-
-        model.fit(X, Y)
-        phase_database[cur_phase]["models"][i] = model
-
-
 def update_agg(cur_phase):
     # update using the batch of data
-    global phase_database, prev1_resource
+    global phase_database
 
     # do it for individual resources
-    # print("Number of models ", len(phase_database[cur_phase]["models"]))
-    # print("Number of resources ", len(prev1_resource))
     for i in range(len(prev1_resource)):
         X, Y = format_data(cur_phase, i)
         # print("Resource ", X, Y)
@@ -374,30 +240,13 @@ def update_agg(cur_phase):
         # Aggregate with previous aggregate stored
         X.append(phase_database[cur_phase]["models"][i])
         phase_database[cur_phase]["models"][i] = np.average(X)
-        # model = phase_database[cur_phase]["models"][i]
-        # # TODO generate synthetic data using the existing model
-        # tempX = []
-        # tempY = []
-        # try:
-        #     tempX, tempY = generate_synthetic(cur_phase, model)
-        # except Exception as e:
-        #     print("Probably not fitted model", e)
-        #
-        # X.extend(tempX)
-        # Y.extend(tempY)
-        #
-        # model.fit(X, Y)
-        # phase_database[cur_phase]["models"][i] = model
 
 
 def update_helper(cur_phase):
     # update ML model for the batch collected
-    global algo
-    if algo == "lasso":
-        update_lasso(cur_phase)
-    elif algo == "simple":
+    if algo == "simple":
         pass
-    if algo == "agg":
+    elif algo == "agg":
         update_agg(cur_phase)
 
 
@@ -419,7 +268,7 @@ def update_phase_database(phase_string, prev2_res, prev1_res, cur_res):
     if phase_string == "":
         return
 
-    global phase_database, batch_size
+    global phase_database
 
     # first check if we have existing information about the preceding two
     # phases, if not, we do not have a profiling point
@@ -429,9 +278,7 @@ def update_phase_database(phase_string, prev2_res, prev1_res, cur_res):
     # check if new or old phase
     if phase_string in phase_database:
         # existing phase
-        # print("SEEN phase")
         # only update when we have a batch of batch_size
-
         if len(phase_database[phase_string]["temp_data"]) < batch_size:
             add_profile(phase_string, prev2_res, prev1_res, cur_res)
         else:
@@ -440,7 +287,6 @@ def update_phase_database(phase_string, prev2_res, prev1_res, cur_res):
 
     else:
         # create new entry
-        # print("Unseen phase")
         val = {"temp_data": [], "models": []}
         phase_database[phase_string] = val
         add_profile(phase_string, prev2_res, prev1_res, cur_res)
@@ -484,11 +330,8 @@ def detect_anomaly(predicted, cur_resources, cur_phase, phase_status):
         with open('/home/ubuntu/data/phase_db_' + algo, 'wb') as f:
             pickle.dump(phase_database, f)
         exit(0)
-    # if similarity < 90:
-    #     print("Anomaly detected ", similarity, predicted, cur_resources)
 
 def get_current_stage():
-    global interval, phase_database
     global prev1_resource, prev2_resource
 
     old_data = stacktrace_helper()  # returns [func_set, [res1 .. resN]]
@@ -509,17 +352,11 @@ def get_current_stage():
     # form the key for storing in phase database
     phase_string = form_phase_string(old_trace, cur_trace, changed)
 
-    # if phase_string in phase_database:
-    #     print("Repeating phase " )#+ str(cur_data))
-    # else:
-    #     phase_database.add(phase_string)
-    #     print("New phase " )
-
     return phase_string, cur_data[1]
 
 
 def initialize():
-    global phase_database, algo
+    global phase_database
 
     # for graceful exit
     signal(SIGINT, handler)
@@ -532,7 +369,7 @@ def initialize():
 
 
 def run_job():
-    global prev1_resource, prev2_resource, num_resources, cur_phase
+    global prev1_resource, cur_phase
     # get current phase and resource information
     cur_phase, cur_resources = get_current_stage()
 
@@ -552,11 +389,6 @@ def run_job():
 
     # one more update
     prev1_resource = cur_resources
-
-    # print(prev2_resource, prev1_resource)
-
-
-
 
 if __name__ == '__main__':
     initialize()
