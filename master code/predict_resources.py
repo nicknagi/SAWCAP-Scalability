@@ -34,9 +34,6 @@ algo = sys.argv[1]
 # batch size for model update
 batch_size = 3
 
-# state machine for detecting anomaly
-anom_confidence = 0
-
 # we use the resource usage of prev 2 phases for building the machine learning
 # model.  These are the meta-inputs
 prev1_resource = []
@@ -51,9 +48,6 @@ def handler(signal_received, frame):
     with open('/home/ubuntu/data/phase_db_' + algo, 'wb') as f:
         pickle.dump(phase_database, f)
     exit(0)
-
-def predict_naive(cur_phase):
-    return prev1_resource
 
 def predict_agg(cur_phase):
     # get the models.  Number of models should be the number of resources
@@ -139,11 +133,11 @@ def stacktrace_helper():
         # When anomaly is run in any of the slaves, ssh also takes longer, so the timeout heuristics
         # is simple but powerful to detect those anomalies, though the timeout value should change
         # system to system
-        command = "timeout --foreground 10 ssh -q -t " + s + " 'cat /home/ubuntu/data/threaddump_data' " \
+        command = "timeout --foreground 2 ssh -q -t " + s + " 'cat /home/ubuntu/data/threaddump_data' " \
                                      ">> ./threaddump_agg"
         os.system(command)
         # accumulate resource usage
-        command = "timeout --foreground 10 ssh -q -t " + s + " 'cat /home/ubuntu/data/resource_data' " \
+        command = "timeout --foreground 2 ssh -q -t " + s + " 'cat /home/ubuntu/data/resource_data' " \
                                      ">> ./resource_agg"
         os.system(command)
 
@@ -306,30 +300,11 @@ def mean_absolute_percentage_error(y_true, y_pred):
 def detect_anomaly(predicted, cur_resources, cur_phase, phase_status):
     # compare the predicted resource with the current resource
     # each mismatch changes a confidence
-    global anom_confidence
     print("Actual:", ["{:.2f}".format(a) for a in cur_resources], "Predicted:", ["{:.2f}".format(a) for a in predicted])
     if cur_phase == "":
         return
-    if phase_status == "unseen":
-        # use simple heuristic of low CPU utilization for unseen phases
-        if cur_resources[0] < 10:
-            anom_confidence = anom_confidence + 1
-        else:
-            anom_confidence = anom_confidence - 1
-    else:
-        # seen this phase before
-        error = mean_absolute_percentage_error(predicted, cur_resources)
-        if error > 50:
-            anom_confidence = anom_confidence + 1
-        else:
-            anom_confidence = anom_confidence - 1
-
-    if anom_confidence > 5:
-        print("Anomaly Detected.  The following is the stacktrace ")
-        print(cur_phase)
-        with open('/home/ubuntu/data/phase_db_' + algo, 'wb') as f:
-            pickle.dump(phase_database, f)
-        exit(0)
+    error = mean_absolute_percentage_error(predicted, cur_resources)
+    print(error)
 
 def get_current_stage():
     global prev1_resource, prev2_resource
