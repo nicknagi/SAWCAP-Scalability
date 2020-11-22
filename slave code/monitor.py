@@ -13,7 +13,7 @@ def gather_profile():
             os.system("./monitor.sh "+str(pid))
         else:
             os.system("./monitor.sh 0")
-    except subprocess.CalledProcessError, e:
+    except subprocess.CalledProcessError as e:
          os.system("./monitor.sh 0")
 
 def monitor():
