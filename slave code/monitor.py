@@ -18,7 +18,10 @@ def gather_profile():
 
 def monitor():
     while True:
+        start = time.clock()
         gather_profile()
+        end = time.clock()
+        print(f"Time taken for sampling: {end-start}")
         time.sleep(1)
 
 
