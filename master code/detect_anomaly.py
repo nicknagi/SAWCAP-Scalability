@@ -448,6 +448,18 @@ def update_phase_database(phase_string, prev2_res, prev1_res, cur_res):
         add_models(phase_string, cur_res)
 
 
+    ### DATA COLLECTION CODE ### -- REMOVE LATER
+    num_res = len(cur_res)
+
+    res_temp = []
+    for r in range(num_res):
+        res_temp.append([prev2_res[r], prev1_res[r], cur_res[r]])
+
+    if ("all_data" not in phase_database[cur_phase]):
+        phase_database[cur_phase]["all_data"] = []
+    phase_database[cur_phase]["all_data"].append(res_temp)
+
+
 def mean_absolute_percentage_error(y_true, y_pred):
     # replace 0 with a small number to avoid div by zero
     y_true = [i if i != 0 else 0.001 for i in y_true]
@@ -553,7 +565,7 @@ def run_job():
     # one more update
     prev1_resource = cur_resources
 
-    # print(prev2_resource, prev1_resource)
+    print(prev2_resource, prev1_resource, cur_resources)
 
 
 
@@ -566,3 +578,4 @@ if __name__ == '__main__':
         except Exception as e:
             print(e)
             continue
+
