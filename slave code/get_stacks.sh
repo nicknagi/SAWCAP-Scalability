@@ -9,14 +9,14 @@ fi
 count=0
 while true; do
 
-	pid=`ps aux|grep 'spark.executor.CoarseGrainedExecutorBackend'|head -1`
+	pid=`jps | grep CoarseGrainedExecutorBackend | awk '{print $1}'`
 
 	#echo $pid
 
-	if [[ $pid == *"grep"* ]];then
+	if [[ -z "$pid"]];then
 		echo '0,0'
 	else
-		pid=`ps aux|grep 'spark.executor.CoarseGrainedExecutorBackend'|head -1|awk '{print $2}'`
+		pid=`jps | grep CoarseGrainedExecutorBackend | awk '{print $1}'`
 		data=`top -p $pid -b1 -n 1|tail -1|awk '{print $9","$10}'`
 		#check if the process died in the middle
 		if [[ $data == *"CPU"* ]]; then
