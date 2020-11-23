@@ -13,7 +13,8 @@ while true; do
 
 	#echo $pid
 
-	if [[ -z "$pid"]] then
+	if [ -z "$pid"]
+        then
 		echo '0,0'
 	else
 		pid=`jps | grep CoarseGrainedExecutorBackend | awk '{print $1}'`
