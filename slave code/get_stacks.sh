@@ -13,7 +13,7 @@ while true; do
 
 	#echo $pid
 
-	if [ -z "$pid"]
+	if [[ -z "${pid}" ]]
         then
 		echo '0,0'
 	else
@@ -22,7 +22,7 @@ while true; do
 		#check if the process died in the middle
 		if [[ $data == *"CPU"* ]]; then
 			echo '0,0'>> "${data_dir}/resource_data"
-		else		
+		else
 			echo $data >> "${data_dir}/resource_data"
 		fi
 
