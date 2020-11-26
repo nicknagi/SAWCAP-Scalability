@@ -29,6 +29,7 @@ while true; do
 		#get stacktrace info
 		jstack $pid > "${data_dir}/temp_threaddump"
 		cat "${data_dir}/temp_threaddump" | java -jar jtda-cli.jar > "${data_dir}/threaddump_aggregate_${count}"
+		echo "${count}" > "${data_dir}/current_aggregate_count"
 		sed -i 's/<0x[0-9a-zA-Z]*>//g' "${data_dir}/threaddump_aggregate_${count}"
 		rm -f "${data_dir}/temp_threaddump"
 		count=$((count+1))
