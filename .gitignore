@@ -1,3 +1,4 @@
 threaddump_agg
 resource_agg
 phase_db_lasso
+*.pyc
