@@ -20,3 +20,5 @@ Team Members:
         Class names use camel case: ClassName
 
         Be descriptive with names: instead of x = 5 -- use number_of_machines = 5 etc.
+        
+* Try to use pure functions whenever possible, i.e when you have a function with some arguments do not modify the data passed in through the arguments directly instead return the output. In other words, if you'd like functions to be pure, then do not change the value of the input or any data that exists outside the function's scope. (FYI functions in python have arguments passed by reference)
