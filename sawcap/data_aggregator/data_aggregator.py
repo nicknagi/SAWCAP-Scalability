@@ -6,11 +6,11 @@ class DataAggregator:
     input_data is essentially the snapshot that we need to aggregate
     '''
 
-    def __init__(self, window):
-        self._window = window
+    def __init__(self, snapshot_collection):
+        self._snapshot_collection = snapshot_collection
 
     def generate_histograms_and_unique_stacktraces(self):
-        histograms = self._build_histogram(self._window.stacktrace_data)
+        histograms = self._build_histogram(self._snapshot_collection.stacktrace_data)
 
         unique_stacktraces = list(histograms.keys())
         thread_histograms = list(histograms.values())
