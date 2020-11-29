@@ -1,25 +1,23 @@
 import os
 
-'''
-For each stacktrace build a set of threads being executed and a corresponding histogram (function -> num thread running)
-Then build functions for calculating stacktrace and threadcount similarity between two associated inputs as described in the paper
-'''
-
 class DataAggregator:
     '''
     input_data: {resource_usage: [[1,2], [10,11] ...], stacktraces: [A, B, C, D...]} # Should be changed to a snapshot object later on
     input_data is essentially the snapshot that we need to aggregate
     '''
 
-    def __init__(self):
-        self._histograms = []
+    def __init__(self, snapshot):
+        self._snapshot = snapshot
 
-    def aggregate(self, snapshot):
-        self._histograms = self._build_histogram(snapshot.stacktrace_data)
-        # Call sub-functions to calculate the individual metrics
+    def generate_histograms_and_unique_stacktraces(self):
+        histograms = self._build_histogram(self._snapshot.stacktrace_data)
+        stacktrace_histogram_pairs = []
 
-        # Returns a vector (list) that is an aggregation of the snapshot
-        pass
+        for histogram in histograms:
+            stacktrace_histogram_pairs.append(
+                [list(histogram.keys()), histogram])
+
+        return stacktrace_histogram_pairs
 
     def _build_histogram(self, stacktrace_data):
         histograms = []
@@ -29,12 +27,16 @@ class DataAggregator:
 
             histogram_entry = {}
             for function, freq in zip(functions, counts):
-                histogram_entry[function] = freq
+                if function in histogram_entry:
+                    histogram_entry[function] += freq
+                else:
+                    histogram_entry[function] = freq
             histograms.append(histogram_entry)
         return histograms
 
     def _extract_functions_and_counts(self, stacktrace):
-        stacktrace_chunks = stacktrace.split('\n\n')[1:] # find all the empty lines and split
+        # find all the empty lines and split
+        stacktrace_chunks = stacktrace.split('\n\n')[1:]
         stacks = []
         counts = []
 
