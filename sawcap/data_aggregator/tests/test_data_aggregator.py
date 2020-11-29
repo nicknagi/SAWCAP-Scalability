@@ -1,5 +1,5 @@
 import unittest
-from data_aggregator.data_aggregator import DataAggregator
+from data_aggregator import data_aggregator
 from entities.snapshot_collection import SnapshotCollection
 
 class TestDataAggregator(unittest.TestCase):
@@ -12,16 +12,14 @@ class TestDataAggregator(unittest.TestCase):
 
     def test_generate_histograms_and_unique_stacktraces_function_no_duplicates(self):
         snapshot_collection = self._create_snapshot_collection_helper("threaddump_aggregate_simple")
-        data_aggregator = DataAggregator(snapshot_collection)
 
-        actual_data = data_aggregator.generate_histograms_and_unique_stacktraces()
+        actual_data = data_aggregator.generate_histograms_and_unique_stacktraces(snapshot_collection.stacktrace_data)
         expected_data = ([" - org.apache.spark.executor.CoarseGrainedExecutorBackend.main(CoarseGrainedExecutorBackend.scala)"], [1])
         self.assertEqual(actual_data, expected_data)
 
     def test_generate_histograms_and_unique_stacktraces_function_duplicates(self):
         snapshot_collection = self._create_snapshot_collection_helper("threaddump_aggregate_duplicate")
-        data_aggregator = DataAggregator(snapshot_collection)
 
-        actual_data = data_aggregator.generate_histograms_and_unique_stacktraces()
+        actual_data = data_aggregator.generate_histograms_and_unique_stacktraces(snapshot_collection.stacktrace_data)
         expected_data = ([" - org.apache.spark.executor.CoarseGrainedExecutorBackend.main(CoarseGrainedExecutorBackend.scala)"], [3])
         self.assertEqual(actual_data, expected_data)

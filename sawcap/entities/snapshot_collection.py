@@ -1,4 +1,4 @@
-from data_aggregator.data_aggregator import DataAggregator
+from data_aggregator import data_aggregator
 import math
 
 # Class for representing a snapshot_collection entity
@@ -7,14 +7,14 @@ class SnapshotCollection:
         self.window_size = snapshot_collection_size
         self.resource_data = resource_data
         self.stacktrace_data = stacktrace_data
-        self.resource_aggregation = [] # Will replace with a function call in DataAggregator later
+        self.resource_aggregation = [] # TODO: Implement the functionality
 
-        data_aggregator = DataAggregator(self)
-        self.unique_stacktraces, self.thread_histograms = data_aggregator.generate_histograms_and_unique_stacktraces()
+        self.unique_stacktraces, self.thread_histograms = data_aggregator.generate_histograms_and_unique_stacktraces(self.stacktrace_data)
 
     # the current snapshot_collection is treated as the reference point
     def stacktrace_similarity(self, other_snapshot_collection):
         common_stacktraces = set(self.unique_stacktraces).intersection(other_snapshot_collection.unique_stacktraces)
+        assert(len(self.unique_stacktraces) != 0)
         return len(common_stacktraces) / len(self.unique_stacktraces)
 
     def threadcount_similarity(self, other_snapshot_collection):

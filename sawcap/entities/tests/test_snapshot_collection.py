@@ -1,7 +1,7 @@
 import unittest
 from entities.snapshot_collection import SnapshotCollection
 
-class Testsnapshot_collection(unittest.TestCase):
+class TestSnapshotCollection(unittest.TestCase):
 
     # Will replace this function with DataCollector class methods later
     def _create_snapshot_collection_helper(self, filename):
