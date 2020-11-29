@@ -21,7 +21,7 @@ def generate_resource_aggregation(resource_data):
         standard_deviation = np.std(wavelet)
         skewness = skew(wavelet)
         kurt = kurtosis(wavelet)
-        p, d, q = pm.auto_arima(wavelet, njobs=-1).order
+        p, d, q = pm.auto_arima(wavelet, njobs=-1, suppress_warnings=True).order
         aggregation.append([minimum, maximum, mean, standard_deviation, skewness, kurt, p, d, q])
     return aggregation
 
