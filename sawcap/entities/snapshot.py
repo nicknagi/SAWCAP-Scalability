@@ -37,3 +37,5 @@ class Snapshot:
         for h_curr, h_other in zip(common_thread_histogram_current, common_thread_histogram_other):
             # Squared-Chord Distance
             threadcount_similarity += ((math.sqrt(h_curr) - math.sqrt(h_other)) ** 2)
+        
+        return threadcount_similarity
