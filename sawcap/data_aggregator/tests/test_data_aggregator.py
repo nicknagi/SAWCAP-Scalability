@@ -1,6 +1,6 @@
 import unittest
 from data_aggregator import data_aggregator
-from scipy.stats import truncnorm
+from scipy.stats import truncnorm, kurtosis, skew
 
 class TestDataAggregator(unittest.TestCase):
 
@@ -44,3 +44,7 @@ class TestDataAggregator(unittest.TestCase):
             self.assertTrue(actual_stats[i][1] <= expected_stats[i][1]) # check maximum bound
             # check mean by ensuring mean is within 1 std
             self.assertAlmostEqual(actual_stats[i][2], expected_stats[i][2], delta=expected_stats[i][3])
+            # check skew
+            self.assertAlmostEqual(actual_stats[i][4], skew(generated_resource_data[i]))
+            # check kurt
+            self.assertAlmostEqual(actual_stats[i][5], kurtosis(generated_resource_data[i]))

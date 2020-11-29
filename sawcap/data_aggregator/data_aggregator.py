@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.stats import kurtosis, skew
 
 # Input: stacktrace_data is a list of aggregate_stacktraces of len window_size
 def generate_histograms_and_unique_stacktraces(stacktrace_data):
@@ -17,7 +18,9 @@ def generate_resource_aggregation(resource_data):
         maximum = wavelet.max()
         mean = wavelet.mean()
         standard_deviation = np.std(wavelet)
-        aggregation.append([minimum, maximum, mean, standard_deviation, 0, 0, 0, 0, 0])
+        skewness = skew(wavelet)
+        kurt = kurtosis(wavelet)
+        aggregation.append([minimum, maximum, mean, standard_deviation, skewness, kurt, 0, 0, 0])
     return aggregation
 
 def _build_histogram(stacktrace_data):
