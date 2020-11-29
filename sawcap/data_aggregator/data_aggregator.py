@@ -11,27 +11,24 @@ class DataAggregator:
 
     def generate_histograms_and_unique_stacktraces(self):
         histograms = self._build_histogram(self._snapshot.stacktrace_data)
-        stacktrace_histogram_pairs = []
 
-        for histogram in histograms:
-            stacktrace_histogram_pairs.append(
-                [list(histogram.keys()), histogram])
+        unique_stacktraces = list(histograms.keys())
+        thread_histograms = list(histograms.values())
 
-        return stacktrace_histogram_pairs
+        return unique_stacktraces, thread_histograms
 
     def _build_histogram(self, stacktrace_data):
-        histograms = []
-        for stacktrace in stacktrace_data:
-            functions, counts = self._extract_functions_and_counts(stacktrace)
+        histograms = {}
+        for stacktrace_dump in stacktrace_data:
+            functions, counts = self._extract_functions_and_counts(stacktrace_dump)
             assert(len(functions) == len(counts))
 
-            histogram_entry = {}
             for function, freq in zip(functions, counts):
-                if function in histogram_entry:
-                    histogram_entry[function] += freq
+                if function in histograms:
+                    # Might not want to do this as over multiple dumps this value will add up [will take care of this later]
+                    histograms[function] += freq
                 else:
-                    histogram_entry[function] = freq
-            histograms.append(histogram_entry)
+                    histograms[function] = freq
         return histograms
 
     def _extract_functions_and_counts(self, stacktrace):

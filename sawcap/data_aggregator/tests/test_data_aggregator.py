@@ -15,8 +15,7 @@ class TestDataAggregator(unittest.TestCase):
         data_aggregator = DataAggregator(snapshot)
 
         actual_data = data_aggregator.generate_histograms_and_unique_stacktraces()
-        expected_data = [[[" - org.apache.spark.executor.CoarseGrainedExecutorBackend.main(CoarseGrainedExecutorBackend.scala)"],
-                          {" - org.apache.spark.executor.CoarseGrainedExecutorBackend.main(CoarseGrainedExecutorBackend.scala)": 1}]]
+        expected_data = ([" - org.apache.spark.executor.CoarseGrainedExecutorBackend.main(CoarseGrainedExecutorBackend.scala)"], [1])
         self.assertEqual(actual_data, expected_data)
 
     def test_generate_histograms_and_unique_stacktraces_function_duplicates(self):
@@ -24,6 +23,5 @@ class TestDataAggregator(unittest.TestCase):
         data_aggregator = DataAggregator(snapshot)
 
         actual_data = data_aggregator.generate_histograms_and_unique_stacktraces()
-        expected_data = [[[" - org.apache.spark.executor.CoarseGrainedExecutorBackend.main(CoarseGrainedExecutorBackend.scala)"],
-                          {" - org.apache.spark.executor.CoarseGrainedExecutorBackend.main(CoarseGrainedExecutorBackend.scala)": 3}]]
+        expected_data = ([" - org.apache.spark.executor.CoarseGrainedExecutorBackend.main(CoarseGrainedExecutorBackend.scala)"], [3])
         self.assertEqual(actual_data, expected_data)
