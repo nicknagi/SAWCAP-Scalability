@@ -1,8 +1,8 @@
 from data_aggregator.data_aggregator import DataAggregator
 import math
 
-# Class for representing a snapshot entity
-class Snapshot:
+# Class for representing a window entity
+class Window:
     def __init__(self, window_size, resource_data, stacktrace_data):
         self.window_size = window_size
         self.resource_data = resource_data
@@ -12,13 +12,13 @@ class Snapshot:
         data_aggregator = DataAggregator(self)
         self.unique_stacktraces, self.thread_histograms = data_aggregator.generate_histograms_and_unique_stacktraces()
 
-    # the current snapshot is treated as the reference point
-    def stacktrace_similarity(self, other_snapshot):
-        common_stacktraces = set(self.unique_stacktraces).intersection(other_snapshot.unique_stacktraces)
+    # the current window is treated as the reference point
+    def stacktrace_similarity(self, other_window):
+        common_stacktraces = set(self.unique_stacktraces).intersection(other_window.unique_stacktraces)
         return len(common_stacktraces) / len(self.unique_stacktraces)
 
-    def threadcount_similarity(self, other_snapshot):
-        common_stacktraces = set(self.unique_stacktraces).intersection(other_snapshot.unique_stacktraces)
+    def threadcount_similarity(self, other_window):
+        common_stacktraces = set(self.unique_stacktraces).intersection(other_window.unique_stacktraces)
         common_thread_histogram_current = []
         common_thread_histogram_other = []
 
@@ -26,9 +26,9 @@ class Snapshot:
             if stacktrace in common_stacktraces:
                 common_thread_histogram_current.append(self.thread_histograms[index])
 
-        for index, stacktrace in enumerate(other_snapshot.unique_stacktraces):
+        for index, stacktrace in enumerate(other_window.unique_stacktraces):
             if stacktrace in common_stacktraces:
-                common_thread_histogram_other.append(other_snapshot.thread_histograms[index])
+                common_thread_histogram_other.append(other_window.thread_histograms[index])
         
         assert(len(common_thread_histogram_current) == len(common_thread_histogram_other))
 

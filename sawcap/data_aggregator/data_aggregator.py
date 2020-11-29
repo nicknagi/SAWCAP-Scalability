@@ -2,15 +2,15 @@ import os
 
 class DataAggregator:
     '''
-    input_data: {resource_usage: [[1,2], [10,11] ...], stacktraces: [A, B, C, D...]} # Should be changed to a snapshot object later on
+    input_data: {resource_usage: [[1,2], [10,11] ...], stacktraces: [A, B, C, D...]} # Should be changed to a window object later on
     input_data is essentially the snapshot that we need to aggregate
     '''
 
-    def __init__(self, snapshot):
-        self._snapshot = snapshot
+    def __init__(self, window):
+        self._window = window
 
     def generate_histograms_and_unique_stacktraces(self):
-        histograms = self._build_histogram(self._snapshot.stacktrace_data)
+        histograms = self._build_histogram(self._window.stacktrace_data)
 
         unique_stacktraces = list(histograms.keys())
         thread_histograms = list(histograms.values())
