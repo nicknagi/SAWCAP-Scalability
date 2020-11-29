@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.stats import kurtosis, skew
+import pmdarima as pm
 
 # Input: stacktrace_data is a list of aggregate_stacktraces of len window_size
 def generate_histograms_and_unique_stacktraces(stacktrace_data):
@@ -20,7 +21,8 @@ def generate_resource_aggregation(resource_data):
         standard_deviation = np.std(wavelet)
         skewness = skew(wavelet)
         kurt = kurtosis(wavelet)
-        aggregation.append([minimum, maximum, mean, standard_deviation, skewness, kurt, 0, 0, 0])
+        p, d, q = pm.auto_arima(wavelet, njobs=-1).order
+        aggregation.append([minimum, maximum, mean, standard_deviation, skewness, kurt, p, d, q])
     return aggregation
 
 def _build_histogram(stacktrace_data):
