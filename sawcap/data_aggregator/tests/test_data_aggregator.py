@@ -49,7 +49,7 @@ class TestDataAggregator(unittest.TestCase):
             self.assertAlmostEqual(actual_stats[i][4], skew(generated_resource_data[i]))
             # check kurt
             self.assertAlmostEqual(actual_stats[i][5], kurtosis(generated_resource_data[i]))
-            p, d, q = pm.auto_arima(generated_resource_data[i]).order
+            p, d, q = pm.auto_arima(generated_resource_data[i], suppress_warnings=True).order
             self.assertEqual(actual_stats[i][6], p)
             self.assertEqual(actual_stats[i][7], d)
             self.assertEqual(actual_stats[i][8], q)
