@@ -1,3 +1,6 @@
+import numpy as np
+
+# Input: stacktrace_data is a list of aggregate_stacktraces of len window_size
 def generate_histograms_and_unique_stacktraces(stacktrace_data):
     histograms = _build_histogram(stacktrace_data)
 
@@ -5,6 +8,17 @@ def generate_histograms_and_unique_stacktraces(stacktrace_data):
     thread_histograms = list(histograms.values())
 
     return unique_stacktraces, thread_histograms
+
+def generate_resource_aggregation(resource_data):
+    aggregation = []
+    assert(isinstance(wavelet, np.ndarray) for wavelet in resource_data)
+    for wavelet in resource_data:
+        minimum = wavelet.min()
+        maximum = wavelet.max()
+        mean = wavelet.mean()
+        standard_deviation = np.std(wavelet)
+        aggregation.append([minimum, maximum, mean, standard_deviation, 0, 0, 0, 0, 0])
+    return aggregation
 
 def _build_histogram(stacktrace_data):
     histograms = {}
