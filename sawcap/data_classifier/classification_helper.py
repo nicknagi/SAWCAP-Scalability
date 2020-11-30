@@ -2,11 +2,20 @@ import numpy as np
 
 # There should only be 1 instance of `DataPredictor` running
 # We can move some of the ML and state machine logic in here later
-class DataPredictor:
+class DataClassifier:
 
 	# array to store past feature vectors
 	# feature_vectors is an N x 2 array
 	feature_vectors = np.array([])
+
+	# todo: rename to classifier
+	# each workload has a different instance of this class
+	# each instance contains a list of vectors in its workload
+	# pop a resource of the incoming queue and run recognizeWorkloads
+	# if classified is true, add to this workload, otherwise try another
+	# workload. If no workloads match, create a new workload
+	# 
+	# hardcode workload id as a column in table
 
 	# threshold for matching 
 	threshold = 0.9	
