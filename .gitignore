@@ -3,4 +3,5 @@ resource_agg
 phase_db_lasso
 *.pyc
 .vscode/*
+__pycache__/
 .DS_Store
