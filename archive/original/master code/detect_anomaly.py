@@ -7,6 +7,10 @@ import sys
 from sklearn import linear_model
 import numpy as np
 import subprocess
+import logging
+
+logging.basicConfig(format='Old Code: %(asctime)s - %(message)s',
+                    datefmt='%d-%b-%y %H:%M:%S', level=logging.DEBUG)
 
 servers = ['172.31.15.58']
 interval = 2  # interval to determine phase change
@@ -42,6 +46,8 @@ anom_confidence = 0
 prev1_resource = []
 prev2_resource = []
 
+DATA_DIR = "/home/ubuntu/data"
+
 cur_phase = ""
 
 
@@ -49,7 +55,7 @@ def handler(signal_received, frame):
     global phase_database, algo
     # Handle any cleanup here
     print('Exiting after saving the current database')
-    with open('/home/ubuntu/data/phase_db_' + algo, 'wb') as f:
+    with open(f"{DATA_DIR}/phase_db_{algo}", 'wb') as f:
         pickle.dump(phase_database, f)
     exit(0)
 
@@ -158,8 +164,7 @@ def parse_resource_agg(file):
     # Timeout heuristics
     if len(lines) != len(servers):
         print("Anomaly Detected.  The following is the stacktrace ")
-        print(cur_phase)
-        with open('/home/ubuntu/data/phase_db_' + algo, 'wb') as f:
+        with open(f"{DATA_DIR}/phase_db_{algo}", 'wb') as f:
             pickle.dump(phase_database, f)
         sys.exit(0)
     # process line by line
@@ -176,7 +181,7 @@ def parse_resource_agg(file):
 
 def read_remote_profile(server):
         # accumulate threaddumps
-        ssh = subprocess.Popen(['timeout' ,'1.5', 'ssh', server, 'cat', '/home/ubuntu/data/threaddump_data'],
+        ssh = subprocess.Popen(['timeout' ,'1.5', 'ssh', server, 'cat', f"{DATA_DIR}/threaddump_data"],
                        stdout=subprocess.PIPE)
         with open("./threaddump_agg",'a') as f:
             for line in ssh.stdout:
@@ -188,7 +193,7 @@ def read_remote_profile(server):
                 f.write(line)
 
         # accumulate resource usage
-        ssh = subprocess.Popen(['timeout' ,'1.5', 'ssh', server, 'cat', '/home/ubuntu/data/resource_data'],
+        ssh = subprocess.Popen(['timeout' ,'1.5', 'ssh', server, 'cat', f"{DATA_DIR}/resource_data"],
                        stdout=subprocess.PIPE)
         with open("./resource_agg",'a') as f:
             for line in ssh.stdout:
@@ -199,20 +204,6 @@ def read_remote_profile(server):
                     sys.exit(0)
                 f.write(line)
 
-
-# returns 0 if ok, 1 if otherwise
-# does not prevent string injection attacks
-def transfer_file_if_exists(server, remotepath, timeout, localpath):
-    command = "timeout --foreground " + timeout + " scp " + server + ":" + remotepath + " " + localpath
-    return subprocess.call(command + "> /dev/null 2>&1", shell=True)
-
-def get_ssh_file_contents(server, remotepath, timeout):
-    command = "timeout --foreground " + timeout + " ssh -q " + server + " cat '" + remotepath + "'"
-    try:
-        output = subprocess.check_output(command, shell=True)
-        return [0, output]
-    except subprocess.CalledProcessError as err:
-        return [err.returncode, err.output]
 
 def stacktrace_helper():
     global servers
@@ -230,16 +221,13 @@ def stacktrace_helper():
         # When anomaly is run in any of the slaves, ssh also takes longer, so the timeout heuristics
         # is simple but powerful to detect those anomalies, though the timeout value should change
         # system to system
-        retcount = get_ssh_file_contents(s, "/home/ubuntu/data/current_aggregate_count", 10)
-        if (retcount[0] != 0):
-            return [1, set([]), []]
-
-        count = int(retcount[1])
-
-        retval = transfer_file_if_exists(s, "/home/ubuntu/data/threaddump_aggregate_" + count, 10, "./threaddump_agg")
+        command = "timeout --foreground 2 ssh -q -t " + s + f" 'cat {DATA_DIR}/threaddump_data' " \
+                                     ">> ./threaddump_agg"
+        os.system(command)
         # accumulate resource usage
-        transfer_file_if_exists(s, "/home/ubuntu/data/resource_data", 10, "./resource_agg")
-
+        command = "timeout --foreground 2 ssh -q -t " + s + f" 'cat {DATA_DIR}/resource_data' " \
+                                     ">> ./resource_agg"
+        os.system(command)
         # read_remote_profile(s)
 
     functions = []
@@ -249,7 +237,7 @@ def stacktrace_helper():
     resource_agg = parse_resource_agg("./resource_agg")
     functions = [i.strip() for i in functions]
 
-    return [retval, set(functions), resource_agg]
+    return [set(functions), resource_agg]
 
 
 def detect_phase_change(old_trace, cur_trace):
@@ -267,10 +255,13 @@ def detect_phase_change(old_trace, cur_trace):
 
     stack_sim = len(old_trace.intersection(cur_trace)) / float(divisor)
 
+    logging.debug(f"Stacktrace Sim: {stack_sim}")
+
     stack_sim_threshold = 0.6
 
     # print("stack_sim ", stack_sim)
     if stack_sim < stack_sim_threshold:
+        logging.debug("Phase Change Detected")
         return True
     else:
         return False
@@ -458,6 +449,7 @@ def update_phase_database(phase_string, prev2_res, prev1_res, cur_res):
     else:
         # create new entry
         # print("Unseen phase")
+        logging.debug("New Phase Detected -> UNSEEN")
         val = {"temp_data": [], "models": []}
         phase_database[phase_string] = val
         add_profile(phase_string, prev2_res, prev1_res, cur_res)
@@ -510,7 +502,7 @@ def detect_anomaly(predicted, cur_resources, cur_phase, phase_status):
     if anom_confidence > 5:
         print("Anomaly Detected.  The following is the stacktrace ")
         print(cur_phase)
-        with open('/home/ubuntu/data/phase_db_' + algo, 'wb') as f:
+        with open(f"{DATA_DIR}/phase_db_" + algo, 'wb') as f:
             pickle.dump(phase_database, f)
         exit(0)
     # if similarity < 90:
@@ -520,20 +512,20 @@ def get_current_stage():
     global interval, phase_database
     global prev1_resource, prev2_resource
 
-    old_data = stacktrace_helper()  # returns [retval, func_set, [res1 .. resN]]
+    old_data = stacktrace_helper()  # returns [func_set, [res1 .. resN]]
     time.sleep(interval)
     cur_data = stacktrace_helper()
 
     # populate the meta-inputs
     prev2_resource = prev1_resource
-    prev1_resource = old_data[2]
+    prev1_resource = old_data[1]
 
     # remove the thread information, just use stacktraces for simplicity
-    old_trace = set([i.split("***")[0] for i in old_data[1]])
-    cur_trace = set([i.split("***")[0] for i in cur_data[1]])
+    old_trace = set([i.split("***")[0] for i in old_data[0]])
+    cur_trace = set([i.split("***")[0] for i in cur_data[0]])
 
     # detect phase change
-    changed = detect_phase_change(old_data[1], cur_data[1])
+    changed = detect_phase_change(old_data[0], cur_data[0])
 
     # form the key for storing in phase database
     phase_string = form_phase_string(old_trace, cur_trace, changed)
@@ -544,7 +536,7 @@ def get_current_stage():
     #     phase_database.add(phase_string)
     #     print("New phase " )
 
-    return phase_string, cur_data[2]
+    return phase_string, cur_data[1]
 
 
 def initialize():
@@ -554,8 +546,8 @@ def initialize():
     signal(SIGINT, handler)
 
     # load the the phase database if exists
-    if os.path.isfile("/home/ubuntu/data/phase_db_" + algo):
-        with open('/home/ubuntu/data/phase_db_' + algo, 'rb') as f:
+    if os.path.isfile(f"{DATA_DIR}/phase_db_" + algo):
+        with open(f"{DATA_DIR}/phase_db_" + algo, 'rb') as f:
             phase_database = pickle.load(f)
             print("Reloaded phase DB ")
 
@@ -582,17 +574,10 @@ def run_job():
     # one more update
     prev1_resource = cur_resources
 
-    print(prev2_resource, prev1_resource, cur_resources)
-
-
 
 
 if __name__ == '__main__':
     initialize()
     while True:
-        try:
-            run_job()
-        except Exception as e:
-            print(e)
-            continue
+        run_job()
 
