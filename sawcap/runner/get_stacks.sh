@@ -15,15 +15,15 @@ while true; do
 
 	if [[ -z "${pid}" ]]
         then
-		echo '0,0'
+		echo '0,0,0'
 	else
 		pid=`jps | grep CoarseGrainedExecutorBackend | awk '{print $1}'`
 		data=`top -p $pid -b1 -n 1|tail -1|awk '{print $9","$10}'`
 		#check if the process died in the middle
 		if [[ $data == *"CPU"* ]]; then
-			echo '0,0'>> "${data_dir}/resource_data"
+			echo '0,0,0'>> "${data_dir}/resource_data"
 		else
-			echo $data >> "${data_dir}/resource_data"
+			echo "$count,$data" >> "${data_dir}/resource_data"
 		fi
 
 		#get stacktrace info
