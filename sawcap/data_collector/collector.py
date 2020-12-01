@@ -1,7 +1,6 @@
 import subprocess
 import os
 import csv
-from entities import snapshot_collection
 
 class WorkerData:
 
@@ -9,6 +8,7 @@ class WorkerData:
 		self.ipaddress = ipaddress.strip()
 		self.threaddump_id = -1
 		self.localdatafolder = "'./temp/" + self.ipaddress + "/'"
+		self.resource_id_offset = 0
 
 class DataCollector:
 	
@@ -84,7 +84,6 @@ class DataCollector:
 		
 			os.system("mkdir -p " + worker.localdatafolder)
 
-
 			retval = self.rsync_folder_if_exists(worker, "/home/ubuntu/data/", 10, worker.localdatafolder)
 			if (retval != 0):
 				return [retval]
@@ -100,7 +99,7 @@ class DataCollector:
 				
 		return 0
 
-	# Returns err, resource-list
+	# Returns err, resource-list: [id, cpu, mem]
 	# This expects the resource file is in order with no miss numbers!!!!
 	def create_resource_list(self, window_size, ipaddress, _start_id):
 
@@ -132,8 +131,21 @@ class DataCollector:
 		
 		# get resources
 		try:
-			for i in range(start_id, end_id):
-				resource_list.append(csv[i])
+			for index in range(start_id, end_id):
+
+				# if resource id has missing data, does not tolerate multiple missing data points well
+				#resource_id = csv[i][0]
+				#newoffset = resource_id - index
+				oldoffset = self.workers[host_index].resource_id_offset
+				
+				#if (newoffset > oldoffset):
+				#	resource = [-1, -1]
+				#	resource_list.append(resource)
+				#	self.workers[host_index].resource_id_offset = oldoffset + 1
+				#	continue
+
+				resource = [csv[index - oldoffset][1], csv[index - oldoffset][2]]
+				resource_list.append(resource)
 				
 		except Exception:
 			return [1, resource_list]
