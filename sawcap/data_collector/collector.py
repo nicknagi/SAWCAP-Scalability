@@ -183,6 +183,6 @@ class DataCollector:
 			# combine all lines
 			lines = ret[1]
 			stacktrace_str = "\n".join(lines)
-			stacktrace_list.append(lines)
+			stacktrace_list.append(stacktrace_str)
 			
 		return [0, stacktrace_list]
