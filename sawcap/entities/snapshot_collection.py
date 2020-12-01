@@ -8,6 +8,7 @@ class SnapshotCollection:
     #   window_size: length of the window i.e number of snapshots in the collection, type: int
     #   resource_data: list of strings with each string being comma seperated values, type: list (of strings)
     #   stacktrace_data: list of strings with each string being the aggregate stacktrace, type: list (of strings)
+    
     def __init__(self, window_size, raw_resource_data, stacktrace_data):
         assert(len(raw_resource_data) == len(stacktrace_data))
         assert(len(raw_resource_data) == window_size)
