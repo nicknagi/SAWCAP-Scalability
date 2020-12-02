@@ -1,6 +1,7 @@
 import subprocess
 import os
 import csv
+from collections import defaultdict
 
 class WorkerData:
 
@@ -9,7 +10,7 @@ class WorkerData:
 		# current id
 		self.threaddump_id = -1
 		self.pulled_id = 0
-		self.localdatafolder = "'./temp/" + self.ipaddress + "/'"
+		self.localdatafolder = "./temp/" + str(self.ipaddress) + "/"
 		self.resource_id_offset = 0
 
 class WorkloadID:
@@ -47,12 +48,12 @@ class DataCollector:
 
 			# get workloads
 			workload_ret = self.get_workloads(ip)
-			if (workload_ret != 0):
+			if (workload_ret[0] != 0):
 				return 2
 			workloads = workload_ret[1]
 			
 			# server data
-			new_server_data = []
+			new_server_data = defaultdict(list)
 
 			for workload in workloads:
 
@@ -66,17 +67,21 @@ class DataCollector:
 				while (s.threaddump_id - s.pulled_id >= window_size):
 
 					resource_ret = self.create_resource_list(window_size, s.ipaddress, pid, s.pulled_id)
-					if (resource_ret == 0):
+					if (resource_ret[0] == 0):
 						new_resources = resource_ret[1]
 
 					stacktrace_ret = self.create_threaddump_list(window_size, s.ipaddress, pid, s.pulled_id)
-					if (stacktrace_ret == 0):
+					if (stacktrace_ret[0] == 0):
 						new_stacktraces = stacktrace_ret[1]
 					
-					new_server_data.append(pid, s.pulled_id, new_resources, new_stacktraces)
+					# new_server_data.append([pid, s.pulled_id, new_resources, new_stacktraces])
+					new_server_data["pid"].append(pid)
+					new_server_data["count_id"].append(s.pulled_id)
+					new_server_data["raw_resource_data"].append(new_resources)
+					new_server_data["stacktrace_data"].append("Hello")
 					s.pulled_id = s.pulled_id + window_size
 
-			all_new_data.append(ip, new_server_data)
+			all_new_data.append([ip, new_server_data])
 		
 		return all_new_data
 
@@ -149,7 +154,7 @@ class DataCollector:
 			if (retval != 0):
 				return [retval]
 
-			ret_threaddump_id = self.file_to_list_string(worker.localdatafolder + pid + "/current_aggregate_count")
+			ret_threaddump_id = self.file_to_list_string(worker.localdatafolder + str(4240) + "/current_aggregate_count")
 			if (ret_threaddump_id[0] != 0):
 				return ret_threaddump_id[0]
 
@@ -178,8 +183,8 @@ class DataCollector:
 		csv = ret[1]
 		
 		for line in csv:
-			timestamp = csv[line][0]
-			pid = csv[line][1]
+			timestamp = line[0]
+			pid = line[1]
 			workload = WorkloadID(self.workers[host_index], timestamp, pid)
 			workloads.append(workload)
 
@@ -262,7 +267,7 @@ class DataCollector:
 		
 		# get stacktraces
 		for i in range(start_id, end_id):
-			ret = self.file_to_list_string(self.workers[host_index].localdatafolder + pid + "/threaddump_aggregate_" + i)
+			ret = self.file_to_list_string(self.workers[host_index].localdatafolder + str(pid) + "/threaddump_aggregate_" + str(i))
 			if (ret[0] != 0):
 				stacktrace_list.append("-1")
 				
