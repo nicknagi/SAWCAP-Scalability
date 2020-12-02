@@ -2,6 +2,7 @@
 # get_stacks.sh will be run on each of the workers
 from entities.database import Database
 from data_collector.collector import DataCollector
+from entities.snapshot_collection import SnapshotCollection
 from time import sleep
 
 class Sawcap:
@@ -12,8 +13,11 @@ class Sawcap:
     def run(self):
         while True:
             # The logic for running everything
+            from pprint import pprint
             x = self.data_collector.get_new_data(10)
-            print(x)
+            raw_resource_data = x[0][1]["raw_resource_data"]
+            for resource_window in raw_resource_data:
+                print(SnapshotCollection(10, resource_window, ["hello"]*10).resource_aggregation)
             sleep(11)
 
 if __name__ == "__main__":

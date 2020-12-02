@@ -58,12 +58,16 @@ class SnapshotCollection:
         return threadcount_similarity
 
     def _format_resource_data(self, raw_resource_data):
-        num_resources = len(raw_resource_data[0].split(","))
+        num_resources = len(raw_resource_data[0])
         resources = [list() for _ in range(num_resources)]
 
         for sample in raw_resource_data:
-            for i, resource_metric in enumerate(sample.split(",")):
-                resources[i].append(float(resource_metric))
+            for i, resource_metric in enumerate(sample):
+                print(resource_metric)
+                if resource_metric == '':
+                    resources[i].append(0)                            #### THIS IS NOT FINE, SHOULD ADD BETTER LOGIC
+                else:
+                    resources[i].append(float(resource_metric))
         for i, resource in enumerate(resources):
             resources[i] = np.array(resource)
 
