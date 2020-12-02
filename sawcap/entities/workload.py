@@ -7,7 +7,7 @@ class CharacterizationState(enum.Enum):
     initial = 1
     stronger = 2
     strongest = 3
-    
+
 class Workload:
 
     def __init__(self, initial_snapshot_collection, unique_identifier):
@@ -20,7 +20,7 @@ class Workload:
     def get_latest_snapshot_collection(self):
         return self._snapshot_collections[-1]
     
-    def add_new_snapshot(self, snapshot_collection):
+    def add_new_snapshot_collection(self, snapshot_collection):
         self._snapshot_collections.append(snapshot_collection)
 
     def calculate_resource_aggregation_vector(self):

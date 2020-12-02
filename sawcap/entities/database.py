@@ -50,5 +50,5 @@ class Database:
     def get_all_workload_classes(self):
         return list(self._database["workload_classes"].keys())
 
-    def get_workloads_from__workload_class(self, workload_class_id):
+    def get_workloads_from_workload_class(self, workload_class_id):
         return self._database["workload_classes"][workload_class_id]["workloads"]

@@ -10,10 +10,11 @@ class Sawcap:
     def run():
         while True:
             # The logic for running everything
-            
+
             pass
 
 
 if __name__ == "__main__":
     sawcap = Sawcap()
     sawcap.run()
+    
