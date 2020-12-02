@@ -23,11 +23,11 @@ while true; do
     	sleep 5
 		continue
 
-	data_dir="${main_data_dir}/${pid}"
-	mkdir -p "${data_dir}"
-	echo "${timestamp},${pid}" >> "${main_data_dir}/workloads"
-
 	else
+		data_dir="${main_data_dir}/${pid}"
+		mkdir -p "${data_dir}"
+		echo "${timestamp},${pid}" >> "${main_data_dir}/workloads"
+
 		pid=`jps | grep CoarseGrainedExecutorBackend | awk '{print $1}'`
 		data=`top -p $pid -b1 -n 1|tail -1|awk '{print $9","$10}'`
 		#check if the process died in the middle
