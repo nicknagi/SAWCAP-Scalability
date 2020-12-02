@@ -53,7 +53,7 @@ class DataCollector:
 			workloads = workload_ret[1]
 			
 			# server data
-			new_server_data = defaultdict(list)
+			new_server_data = []
 
 			for workload in workloads:
 
@@ -75,13 +75,18 @@ class DataCollector:
 						new_stacktraces = stacktrace_ret[1]
 					
 					# new_server_data.append([pid, s.pulled_id, new_resources, new_stacktraces])
-					new_server_data["pid"].append(pid)
-					new_server_data["count_id"].append(s.pulled_id)
-					new_server_data["raw_resource_data"].append(new_resources)
-					new_server_data["stacktrace_data"].append("Hello")
+					new_data_dict = {}
+					new_data_dict["pid"] = pid
+					new_data_dict["count_id"] = s.pulled_id
+					new_data_dict["raw_resource_data"] = new_resources
+					new_data_dict["stacktrace_data"] = new_stacktraces
 					s.pulled_id = s.pulled_id + window_size
+					new_server_data.append(new_data_dict)
 
-			all_new_data.append([ip, new_server_data])
+			all_data_dict = {}
+			all_data_dict["ip"] = ip
+			all_data_dict["data"] = new_server_data
+			all_new_data.append(all_data_dict)
 		
 		return all_new_data
 
@@ -234,8 +239,16 @@ class DataCollector:
 				#	resource_list.append(resource)
 				#	self.workers[host_index].resource_id_offset = oldoffset + 1
 				#	continue
+				cpu = csv[index - oldoffset][1]
+				mem = csv[index - oldoffset][2]
 
-				resource = [csv[index - oldoffset][1], csv[index - oldoffset][2]]
+				if(cpu in (None, "")):
+					cpu = -1
+
+				if (mem in (None, "")):
+					mem = -1
+
+				resource = [cpu, mem]
 				resource_list.append(resource)
 				
 		except Exception:
