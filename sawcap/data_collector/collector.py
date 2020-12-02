@@ -246,7 +246,9 @@ class DataCollector:
 				# if resource id has missing data, does not tolerate multiple missing data points well
 				#resource_id = csv[i][0]
 				#newoffset = resource_id - index
-				oldoffset = self.workers[host_index].resource_id_offset
+				# CHANGE THIS
+				#oldoffset = self.workers[host_index].resource_id_offset
+				oldoffset = 0
 				
 				#if (newoffset > oldoffset):
 				#	resource = [-1, -1]
