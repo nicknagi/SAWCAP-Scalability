@@ -63,7 +63,6 @@ class SnapshotCollection:
 
         for sample in raw_resource_data:
             for i, resource_metric in enumerate(sample):
-                print(resource_metric)
                 if resource_metric == '':
                     resources[i].append(0)                            #### THIS IS NOT FINE, SHOULD ADD BETTER LOGIC
                 else:
