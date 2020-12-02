@@ -8,10 +8,7 @@ class WorkerData:
 	def __init__(self, ipaddress):
 		self.ipaddress = ipaddress.strip()
 		# current id
-		self.threaddump_id = -1
-		self.pulled_id = 0
 		self.localdatafolder = "./temp/" + str(self.ipaddress) + "/"
-		self.resource_id_offset = 0
 
 class WorkloadID:
 
@@ -19,6 +16,9 @@ class WorkloadID:
 		self.worker_ip = worker_ip
 		self.timestamp = timestamp
 		self.pid = pid
+		self.data_id = -1
+		self.pulled_id = 0
+		self.resource_id_offset = 0
 
 class DataCollector:
 	
@@ -62,15 +62,19 @@ class DataCollector:
 				new_resources = []
 				new_stacktraces = []
 
-				# s.threaddump_id updates in self.get_remote_data()
-				# s.pulled id updates here
-				while (s.threaddump_id - s.pulled_id >= window_size):
+				# pulled id updates here
+				while (workload.data_id - workload.pulled_id >= window_size):
 
-					resource_ret = self.create_resource_list(window_size, s.ipaddress, pid, s.pulled_id)
+					# update data_id
+					count_ret = self.update_data_id(workload)
+					if (count_ret != 0):
+						return 3
+
+					resource_ret = self.create_resource_list(window_size, workload.ipaddress, pid, workload.pulled_id)
 					if (resource_ret[0] == 0):
 						new_resources = resource_ret[1]
 
-					stacktrace_ret = self.create_threaddump_list(window_size, s.ipaddress, pid, s.pulled_id)
+					stacktrace_ret = self.create_threaddump_list(window_size, workload.ipaddress, pid, workload.pulled_id)
 					if (stacktrace_ret[0] == 0):
 						new_stacktraces = stacktrace_ret[1]
 					
@@ -151,7 +155,7 @@ class DataCollector:
 	def get_remote_data(self):
 
 		# fetch new data
-		for i, worker in enumerate(self.workers):
+		for worker in self.workers:
 		
 			os.system("mkdir -p " + worker.localdatafolder)
 
@@ -159,15 +163,25 @@ class DataCollector:
 			if (retval != 0):
 				return [retval]
 
-			ret_threaddump_id = self.file_to_list_string(worker.localdatafolder + str(4240) + "/current_aggregate_count")
-			if (ret_threaddump_id[0] != 0):
-				return ret_threaddump_id[0]
+		return 0
 
-			try:
-				self.workers[i].threaddump_id = int(ret_threaddump_id[1][0])
-			except IndexError:
-				return 1
-				
+	# Update current data_id from file
+	# Returns err
+	def update_data_id(self, workload_id):
+
+		# get host data
+		host_index = self.index_of_host(workload_id.worker_ip)
+		if (host_index < 0):
+			return 1
+		ret_data_id = self.file_to_list_string(self.workers[host_index].localdatafolder + workload_id.pid + "/current_aggregate_count")
+		if (ret_data_id[0] != 0):
+			return ret_data_id[0]
+
+		try:
+			workload_id.data_id = int(ret_data_id[1][0])
+		except IndexError:
+			return 1
+
 		return 0
 
 	# Return err, workloads
