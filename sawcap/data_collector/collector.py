@@ -28,7 +28,10 @@ class DataCollector:
 			workerData = WorkerData(worker)
 			self.workers.append(workerData)
 
-	# resources, threaddumps
+	# returns
+	# (server list)
+	# 			-> (ip, pid list)
+	#						-> (pid, resources list, stacktraces list)
 	def getNewData(self):
 		
 		ret = self.get_remote_data()
