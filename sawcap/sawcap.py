@@ -9,7 +9,7 @@ class Sawcap:
         self.database = Database()
         self.data_collector = DataCollector(["localhost"])
 
-    def run():
+    def run(self):
         while True:
             # The logic for running everything
             x = self.data_collector.get_new_data(10)
