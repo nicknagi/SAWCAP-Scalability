@@ -7,7 +7,7 @@ from time import sleep
 class Sawcap:
     def __init__(self):
         self.database = Database()
-        self.data_collector = DataCollector(["localhost"])
+        self.data_collector = DataCollector(["172.31.15.58"])
 
     def run(self):
         while True:

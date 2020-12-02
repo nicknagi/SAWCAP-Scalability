@@ -83,15 +83,15 @@ class DataCollector:
 	# returns 0 if ok, 1 if otherwise
 	# does not prevent string injection attacks
 	def transfer_file_if_exists(self, server, remotepath, timeout, localpath):
-		command = "timeout --foreground " + timeout + " scp " + server + ":" + remotepath + " " + localpath
+		command = "timeout --foreground " + str(timeout) + " scp " + server + ":" + remotepath + " " + localpath
 		return subprocess.call(command + "> /dev/null 2>&1", shell=True)
 
 	def rsync_folder_if_exists(self, server, remotepath, timeout, localpath):
-		command = "timeout --foreground " + timeout + " rsync -qrl " + server + ":" + remotepath + " " + localpath
+		command = "timeout --foreground " + str(timeout) + " rsync -qrl " + server + ":" + remotepath + " " + localpath
 		return subprocess.call(command + "> /dev/null 2>&1", shell=True)
 
 	def get_ssh_file_contents(self, server, remotepath, timeout):
-		command = "timeout --foreground " + timeout + " ssh -q " + server + " cat '" + remotepath + "'"
+		command = "timeout --foreground " + str(timeout) + " ssh -q " + server + " cat '" + remotepath + "'"
 		try:
 			output = subprocess.check_output(command, shell=True)
 			return [0, output]
@@ -145,7 +145,7 @@ class DataCollector:
 		
 			os.system("mkdir -p " + worker.localdatafolder)
 
-			retval = self.rsync_folder_if_exists(worker, "/home/ubuntu/data/", 10, worker.localdatafolder)
+			retval = self.rsync_folder_if_exists(worker.ipaddress, "/home/ubuntu/data/", 10, worker.localdatafolder)
 			if (retval != 0):
 				return [retval]
 
