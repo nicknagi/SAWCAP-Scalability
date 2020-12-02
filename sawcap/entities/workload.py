@@ -16,6 +16,7 @@ class Workload:
         self.characterization_state = CharacterizationState.initial
         self._len_snapshot_collections_for_aggregation = 1
         self._resource_aggregaion_vector = initial_snapshot_collection.resource_aggregation
+        self.workload_class = ""
     
     def get_latest_snapshot_collection(self):
         return self._snapshot_collections[-1]
