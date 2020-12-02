@@ -6,6 +6,9 @@ from entities.snapshot_collection import SnapshotCollection
 from time import sleep
 from entities.workload import Workload
 
+import warnings
+warnings.filterwarnings('ignore')
+
 WINDOW_SIZE = 10
 
 class Sawcap:
@@ -30,6 +33,7 @@ class Sawcap:
                     self.database.add_new_workload(self._current_workload)
                 else:
                     self._current_workload.add_new_snapshot_collection(snapshot_collection)
+
             print(self.database._database)
             print(self.database.get_uncharacterized_workloads()[0]._snapshot_collections)
             sleep(WINDOW_SIZE+1)
