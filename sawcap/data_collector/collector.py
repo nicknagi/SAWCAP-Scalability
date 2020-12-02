@@ -12,7 +12,7 @@ class WorkerData:
 		self.localdatafolder = "'./temp/" + self.ipaddress + "/'"
 		self.resource_id_offset = 0
 
-class Workload:
+class WorkloadID:
 
 	def __init__(self, worker_ip, timestamp, pid):
 		self.worker_ip = worker_ip
@@ -31,8 +31,8 @@ class DataCollector:
 	# returns
 	# (server list)
 	# 			-> (ip, pid list)
-	#						-> (pid, resources list, stacktraces list)
-	def getNewData(self):
+	#						-> (pid, count id, resources list, stacktraces list)
+	def get_new_data(self, window_size):
 		
 		ret = self.get_remote_data()
 		if (ret != 0):
@@ -61,15 +61,20 @@ class DataCollector:
 				new_resources = []
 				new_stacktraces = []
 
-				resource_ret = self.create_resource_list(s.threaddump_id-s.pulled_id, s.ipaddress, pid, s.pulled_id)
-				if (resource_ret == 0):
-					new_resources = resource_ret[1]
+				# s.threaddump_id updates in self.get_remote_data()
+				# s.pulled id updates here
+				while (s.threaddump_id - s.pulled_id >= window_size):
 
-				stacktrace_ret = self.create_threaddump_list(s.threaddump_id-s.pulled_id, s.ipaddress, pid, s.pulled_id)
-				if (stacktrace_ret == 0):
-					new_stacktraces = stacktrace_ret[1]
-				
-				new_server_data.append(pid, new_resources, new_stacktraces)
+					resource_ret = self.create_resource_list(window_size, s.ipaddress, pid, s.pulled_id)
+					if (resource_ret == 0):
+						new_resources = resource_ret[1]
+
+					stacktrace_ret = self.create_threaddump_list(window_size, s.ipaddress, pid, s.pulled_id)
+					if (stacktrace_ret == 0):
+						new_stacktraces = stacktrace_ret[1]
+					
+					new_server_data.append(pid, s.pulled_id, new_resources, new_stacktraces)
+					s.pulled_id = s.pulled_id + window_size
 
 			all_new_data.append(ip, new_server_data)
 		
@@ -175,7 +180,7 @@ class DataCollector:
 		for line in csv:
 			timestamp = csv[line][0]
 			pid = csv[line][1]
-			workload = Workload(self.workers[host_index], timestamp, pid)
+			workload = WorkloadID(self.workers[host_index], timestamp, pid)
 			workloads.append(workload)
 
 		return [0, workloads]
