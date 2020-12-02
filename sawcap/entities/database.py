@@ -7,7 +7,7 @@ import uuid
 Structure of the database dictionary:
     {
         "characterization_queue": [workload3],
-        "classes": {
+        "workload_classes": {
             "uuid4-1" : {
                 "workloads": [workload1, workload4],
                 "model": model-key -- predictor maintains internal data_structure that stores the models
@@ -23,12 +23,10 @@ class Database:
     def __init__(self):
         self._database = dict()
         self._database["characterization_queue"] = list()
-        self._database["id_to_workload"] = dict()
         self._database["workload_classes"] = dict()
 
     def add_new_workload(self, workload):
         self._database["characterization_queue"].append(workload)
-        self._database["id_to_workload"][workload.unique_id] = workload
     
     def create_new_workload_class(self):
         new_class_id = str(uuid.uuid4())
@@ -45,9 +43,6 @@ class Database:
 
     def get_uncharacterized_workloads(self):
         return self._database["characterization_queue"]
-
-    def get_workload_from_id(self, unique_id):
-        return self._database["id_to_workload"][unique_id]
     
     def get_model_id_from_class(self, workload_class_id):
         return self._database["workload_classes"][workload_class_id]["model"]
