@@ -6,9 +6,18 @@ class WorkerData:
 
 	def __init__(self, ipaddress):
 		self.ipaddress = ipaddress.strip()
+		# current id
 		self.threaddump_id = -1
+		self.pulled_id = 0
 		self.localdatafolder = "'./temp/" + self.ipaddress + "/'"
 		self.resource_id_offset = 0
+
+class WorkloadID:
+
+	def __init__(self, worker_ip, timestamp, pid):
+		self.worker_ip = worker_ip
+		self.timestamp = timestamp
+		self.pid = pid
 
 class DataCollector:
 	
@@ -18,6 +27,58 @@ class DataCollector:
 		for worker in workers:
 			workerData = WorkerData(worker)
 			self.workers.append(workerData)
+
+	# returns
+	# (server list)
+	# 			-> (ip, pid list)
+	#						-> (pid, count id, resources list, stacktraces list)
+	def get_new_data(self, window_size):
+		
+		ret = self.get_remote_data()
+		if (ret != 0):
+			return 1
+
+		all_new_data = []
+
+		# look at all workers
+		for s in self.workers:
+
+			ip = s.ipaddress
+
+			# get workloads
+			workload_ret = self.get_workloads(ip)
+			if (workload_ret != 0):
+				return 2
+			workloads = workload_ret[1]
+			
+			# server data
+			new_server_data = []
+
+			for workload in workloads:
+
+				# get resources
+				pid = workload.pid
+				new_resources = []
+				new_stacktraces = []
+
+				# s.threaddump_id updates in self.get_remote_data()
+				# s.pulled id updates here
+				while (s.threaddump_id - s.pulled_id >= window_size):
+
+					resource_ret = self.create_resource_list(window_size, s.ipaddress, pid, s.pulled_id)
+					if (resource_ret == 0):
+						new_resources = resource_ret[1]
+
+					stacktrace_ret = self.create_threaddump_list(window_size, s.ipaddress, pid, s.pulled_id)
+					if (stacktrace_ret == 0):
+						new_stacktraces = stacktrace_ret[1]
+					
+					new_server_data.append(pid, s.pulled_id, new_resources, new_stacktraces)
+					s.pulled_id = s.pulled_id + window_size
+
+			all_new_data.append(ip, new_server_data)
+		
+		return all_new_data
 
 	# returns 0 if ok, 1 if otherwise
 	# does not prevent string injection attacks
@@ -77,7 +138,7 @@ class DataCollector:
 
 	# Copy all data to local machine
 	# Returns err
-	def get_remote_metrics(self):
+	def get_remote_data(self):
 
 		# fetch new data
 		for i, worker in enumerate(self.workers):
@@ -88,7 +149,7 @@ class DataCollector:
 			if (retval != 0):
 				return [retval]
 
-			ret_threaddump_id = self.file_to_list_string(worker.localdatafolder + "current_aggregate_count")
+			ret_threaddump_id = self.file_to_list_string(worker.localdatafolder + pid + "/current_aggregate_count")
 			if (ret_threaddump_id[0] != 0):
 				return ret_threaddump_id[0]
 
@@ -99,9 +160,34 @@ class DataCollector:
 				
 		return 0
 
-	# Returns err, resource-list: [id, cpu, mem]
+	# Return err, workloads
+	def get_workloads(self, ipaddress):
+
+		workloads = []
+
+		# get host data
+		host_index = self.index_of_host(ipaddress)
+		if (host_index < 0):
+			return [1, workloads]
+		
+		# get csv
+		ret = self.file_to_csv(self.workers[host_index].localdatafolder + "workloads")
+		if (ret[0] != 0):
+			return [ret[0], workloads]
+
+		csv = ret[1]
+		
+		for line in csv:
+			timestamp = csv[line][0]
+			pid = csv[line][1]
+			workload = WorkloadID(self.workers[host_index], timestamp, pid)
+			workloads.append(workload)
+
+		return [0, workloads]
+
+	# Returns err, resource-list: [cpu, mem]
 	# This expects the resource file is in order with no miss numbers!!!!
-	def create_resource_list(self, window_size, ipaddress, _start_id):
+	def create_resource_list(self, window_size, ipaddress, pid, _start_id):
 
 		resource_list = []
 
@@ -111,7 +197,7 @@ class DataCollector:
 			return [1, resource_list]
 		
 		# get csv
-		ret = self.file_to_csv(self.workers[host_index].localdatafolder + "resource_data")
+		ret = self.file_to_csv(self.workers[host_index].localdatafolder + pid + "/resource_data")
 		if (ret[0] != 0):
 			return [ret[0], resource_list]
 
@@ -153,7 +239,7 @@ class DataCollector:
 		return [0, resource_list]
 
 	# if stacktrace unavailable, the string will be -1
-	def create_threaddump_list(self, window_size, ipaddress, _start_id):
+	def create_threaddump_list(self, window_size, ipaddress, pid, _start_id):
 	
 		stacktrace_list = []
 		
@@ -176,7 +262,7 @@ class DataCollector:
 		
 		# get stacktraces
 		for i in range(start_id, end_id):
-			ret = self.file_to_list_string(self.workers[host_index].localdatafolder + "threaddump_aggregate_" + i)
+			ret = self.file_to_list_string(self.workers[host_index].localdatafolder + pid + "/threaddump_aggregate_" + i)
 			if (ret[0] != 0):
 				stacktrace_list.append("-1")
 				
