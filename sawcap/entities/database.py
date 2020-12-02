@@ -2,8 +2,24 @@ from collections import defaultdict
 import uuid
 
 # Class assumes workload class exists
-class Database:
 
+'''
+Structure of the database dictionary:
+    {
+        "characterization_queue": [workload3],
+        "classes": {
+            "uuid4-1" : {
+                "workloads": [workload1, workload4],
+                "model": model-key -- predictor maintains internal data_structure that stores the models
+            },
+            "uuid4-2" : {
+                "workloads": [workload2],
+                "model": model-key
+            }
+        }
+    }
+'''
+class Database:
     def __init__(self):
         self._database = dict()
         self._database["characterization_queue"] = list()
@@ -35,3 +51,9 @@ class Database:
     
     def get_model_id_from_class(self, workload_class_id):
         return self._database["workload_classes"][workload_class_id]["model"]
+    
+    def get_all_workload_classes(self):
+        return list(self._database["workload_classes"].keys())
+
+    def get_workloads_from__workload_class(self, workload_class_id):
+        return self._database["workload_classes"][workload_class_id]["workloads"]
