@@ -8,10 +8,10 @@ class TestSnapshotCollection(unittest.TestCase):
     def _create_snapshot_collection_helper(self, filename):
         with open("data_aggregator/tests/sample_data/"+filename, "r") as f:
             # Return a snapshot_collection with snapshot_collection size 1
-            return SnapshotCollection(1, ["1,1"], [f.read()])
+            return SnapshotCollection(1, [[1,1]], [f.read()])
 
     def test_snapshot_collection_init(self):
-        resource_data = ["1,2", "3,4", "1,2", "3,4"]
+        resource_data = [[1,2], [3,4], [1,2], [3,4]]
         expected_resource_data = [np.array([1,3,1,3]), np.array([2,4,2,4])]
         window_size = 4
         stacktrace_data = ["Hello", "world", "Hello", "world"]
