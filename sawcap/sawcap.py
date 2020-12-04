@@ -33,9 +33,7 @@ class Sawcap:
                     self.database.add_new_workload(self._current_workload)
                 else:
                     self._current_workload.add_new_snapshot_collection(snapshot_collection)
-
-            print(self.database._database)
-            print(self.database.get_uncharacterized_workloads()[0]._snapshot_collections)
+        
             sleep(WINDOW_SIZE+1)
 
 if __name__ == "__main__":
