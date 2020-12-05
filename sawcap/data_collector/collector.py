@@ -3,7 +3,6 @@ import os
 import csv
 from collections import defaultdict
 
-
 class WorkerData:
 
 	def __init__(self, ipaddress):
@@ -57,7 +56,6 @@ class DataCollector:
 
 			# server data
 			new_server_data = []
-
 			for workload in workloads:
 
 				# get resources
@@ -65,31 +63,29 @@ class DataCollector:
 				new_resources = []
 				new_stacktraces = []
 
+				# update data_id
+				count_ret = self.update_data_id(workload)
+				if (count_ret != 0):
+					return 3
 				# pulled id updates here
 				while (workload.data_id - workload.pulled_id >= window_size):
-
-					# update data_id
-					count_ret = self.update_data_id(workload)
-					if (count_ret != 0):
-						return 3
-
 					resource_ret = self.create_resource_list(
-						window_size, workload.ipaddress, pid, workload.pulled_id)
+						window_size, workload.worker_ip, pid, workload.pulled_id)
 					if (resource_ret[0] == 0):
 						new_resources = resource_ret[1]
 
 					stacktrace_ret = self.create_threaddump_list(
-						window_size, workload.ipaddress, pid, workload.pulled_id)
+						window_size, workload.worker_ip, pid, workload.pulled_id)
 					if (stacktrace_ret[0] == 0):
 						new_stacktraces = stacktrace_ret[1]
 
 					# new_server_data.append([pid, s.pulled_id, new_resources, new_stacktraces])
 					new_data_dict = {}
 					new_data_dict["pid"] = pid
-					new_data_dict["count_id"] = s.pulled_id
+					new_data_dict["count_id"] = workload.pulled_id
 					new_data_dict["raw_resource_data"] = new_resources
 					new_data_dict["stacktrace_data"] = new_stacktraces
-					s.pulled_id = s.pulled_id + window_size
+					workload.pulled_id = workload.pulled_id + window_size
 					new_server_data.append(new_data_dict)
 
 			all_data_dict = {}
@@ -215,9 +211,8 @@ class DataCollector:
 		for line in csv:
 			timestamp = line[0]
 			pid = line[1]
-			workload = WorkloadID(self.workers[host_index], timestamp, pid)
+			workload = WorkloadID(self.workers[host_index].ipaddress, timestamp, pid)
 			workloads.append(workload)
-
 		return [0, workloads]
 
 	# Returns err, resource-list: [cpu, mem]

@@ -32,6 +32,7 @@ class Sawcap:
                     self._current_workload = Workload(snapshot_collection, window["pid"])
                     self.database.add_new_workload(self._current_workload)
                 else:
+                    print("Added new snapshot collection to database")
                     self._current_workload.add_new_snapshot_collection(snapshot_collection)
         
             sleep(WINDOW_SIZE+1)
