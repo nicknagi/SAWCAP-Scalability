@@ -17,22 +17,26 @@ while true; do
 		# echo $SINGLELINE;
 	# done
 	timestamp=$(date +%s)
-	
+
 	if [[ -z "${pid}" ]]
-    then
+    	then
     	count=0
     	echo "no workload running"
     	sleep 5
 		continue
 
 	else
+		echo ${prev_pid} ${pid}
 		# Track prev_pid for the very first job
-		if [[ "${prev_pid}" == "" ]] then
+		if [[ "${prev_pid}" == "" ]]
+		then
+			echo "${timestamp},${pid}" >> "${main_data_dir}/workloads"
 			prev_pid=${pid}
 		fi
 
 		# Write data to workloads file for new pid
-		if [[ "${prev_pid}" != "${pid}" ]] then 
+		if [[ "${prev_pid}" != "${pid}" ]]
+		then
 			echo "${timestamp},${pid}" >> "${main_data_dir}/workloads"
 			prev_pid=${pid}
 		fi
