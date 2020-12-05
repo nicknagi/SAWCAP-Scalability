@@ -26,7 +26,7 @@ while true; do
 		continue
 
 	else
-		echo ${prev_pid} ${pid}
+		echo "Currently Observing ${pid}"
 		# Track prev_pid for the very first job
 		if [[ "${prev_pid}" == "" ]]
 		then
