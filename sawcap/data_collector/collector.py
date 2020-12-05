@@ -25,7 +25,7 @@ class WorkloadID:
 class DataCollector:
 
 	def __init__(self, workers):
-
+		self._workloads_history = {}
 		self.workers = []
 		for worker in workers:
 			workerData = WorkerData(worker)
@@ -211,9 +211,20 @@ class DataCollector:
 		for line in csv:
 			timestamp = line[0]
 			pid = line[1]
-			workload = WorkloadID(self.workers[host_index].ipaddress, timestamp, pid)
+			ip_address = self.workers[host_index].ipaddress
+			workload = self.get_workloadID(ip_address, timestamp, pid)
 			workloads.append(workload)
 		return [0, workloads]
+
+	# Checks if already stored in internal dictionary, otherwise creates new one
+	def get_workloadID(self, ip_address, timestamp, pid):
+		workload_key = ip_address + timestamp + pid
+		if workload_key in self._workloads_history:
+			return self._workloads_history[workload_key]
+		else:
+			workload = WorkloadID(ip_address, timestamp, pid)
+			self._workloads_history[workload_key] = workload
+			return workload
 
 	# Returns err, resource-list: [cpu, mem]
 	# This expects the resource file is in order with no miss numbers!!!!
