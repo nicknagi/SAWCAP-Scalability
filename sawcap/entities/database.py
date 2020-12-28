@@ -25,9 +25,12 @@ class Database:
         self._database["characterization_queue"] = list()
         self._database["workload_classes"] = dict()
 
-    def add_new_workload(self, workload):
+    def add_new_uncharacterized_workload(self, workload):
         self._database["characterization_queue"].append(workload)
     
+    def remove_workload_from_characterization_queue(self, workload):
+        self._database["characterization_queue"].remove(workload)
+
     def create_new_workload_class(self):
         new_class_id = str(uuid.uuid4())
         self._database["workload_classes"][new_class_id] = dict()
@@ -38,7 +41,7 @@ class Database:
     def add_workload_to_class(self, workload, class_id):
         self._database["workload_classes"][class_id]["workloads"].append(workload)
     
-    def add_model_to_workload_class(self, class_id, model_id):
+    def add_model_to_workload_class(self, model_id, class_id):
         self._database["workload_classes"][class_id]["model"] = model_id
 
     def get_uncharacterized_workloads(self):
