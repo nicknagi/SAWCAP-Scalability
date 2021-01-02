@@ -8,26 +8,42 @@ if [ "$#" -ne 1 ]; then
         exit
 fi
 count=0
+prev_pid=""
 while true; do
 
 	pid=`jps | grep CoarseGrainedExecutorBackend | awk '{print $1}'`
+
 	# while IFS= read -r SINGLELINE; do
 		# echo $SINGLELINE;
 	# done
 	timestamp=$(date +%s)
-	
+
 	if [[ -z "${pid}" ]]
-    then
+    	then
     	count=0
     	echo "no workload running"
     	sleep 5
 		continue
 
-	data_dir="${main_data_dir}/${pid}"
-	mkdir -p "${data_dir}"
-	echo "${timestamp},${pid}" >> "${main_data_dir}/workloads"
-
 	else
+		echo "Currently Observing ${pid}"
+		# Track prev_pid for the very first job
+		if [[ "${prev_pid}" == "" ]]
+		then
+			echo "${timestamp},${pid}" >> "${main_data_dir}/workloads"
+			prev_pid=${pid}
+		fi
+
+		# Write data to workloads file for new pid
+		if [[ "${prev_pid}" != "${pid}" ]]
+		then
+			echo "${timestamp},${pid}" >> "${main_data_dir}/workloads"
+			prev_pid=${pid}
+		fi
+
+		data_dir="${main_data_dir}/${pid}"
+		mkdir -p "${data_dir}"
+
 		pid=`jps | grep CoarseGrainedExecutorBackend | awk '{print $1}'`
 		data=`top -p $pid -b1 -n 1|tail -1|awk '{print $9","$10}'`
 		#check if the process died in the middle

@@ -8,7 +8,7 @@ class SnapshotCollection:
     #   window_size: length of the window i.e number of snapshots in the collection, type: int
     #   resource_data: list of strings with each string being comma seperated values, type: list (of strings)
     #   stacktrace_data: list of strings with each string being the aggregate stacktrace, type: list (of strings)
-    
+
     def __init__(self, window_size, raw_resource_data, stacktrace_data):
         assert(len(raw_resource_data) == len(stacktrace_data))
         assert(len(raw_resource_data) == window_size)
@@ -17,7 +17,8 @@ class SnapshotCollection:
         self.window_size = window_size
         self.resource_data = self._format_resource_data(raw_resource_data)
         self.stacktrace_data = stacktrace_data
-        self.resource_aggregation = data_aggregator.generate_resource_aggregation(self.resource_data)
+        self.resource_aggregation = data_aggregator.generate_resource_aggregation(
+            self.resource_data)
 
         self.unique_stacktraces, self.thread_histograms = data_aggregator.generate_histograms_and_unique_stacktraces(
             self.stacktrace_data)
@@ -58,12 +59,16 @@ class SnapshotCollection:
         return threadcount_similarity
 
     def _format_resource_data(self, raw_resource_data):
-        num_resources = len(raw_resource_data[0].split(","))
+        num_resources = len(raw_resource_data[0])
         resources = [list() for _ in range(num_resources)]
 
         for sample in raw_resource_data:
-            for i, resource_metric in enumerate(sample.split(",")):
-                resources[i].append(float(resource_metric))
+            for i, resource_metric in enumerate(sample):
+                if resource_metric == '':
+                    # THIS IS NOT FINE, SHOULD ADD BETTER LOGIC
+                    resources[i].append(0)
+                else:
+                    resources[i].append(float(resource_metric))
         for i, resource in enumerate(resources):
             resources[i] = np.array(resource)
 

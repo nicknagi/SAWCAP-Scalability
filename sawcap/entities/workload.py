@@ -23,7 +23,9 @@ class Workload:
     
     def add_new_snapshot_collection(self, snapshot_collection):
         self._snapshot_collections.append(snapshot_collection)
+        self._len_snapshot_collections_for_aggregation += 1
 
+    # Most probably will change when working on characterization task
     def calculate_resource_aggregation_vector(self):
         assert(self._len_snapshot_collections_for_aggregation > 0)
 
