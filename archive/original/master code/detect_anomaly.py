@@ -44,6 +44,11 @@ prev2_resource = []
 
 cur_phase = ""
 
+predicted_resources = []
+actual_resources = []
+
+# flag to record accuracy. Turn off when benchmarking to prevent memory overhead. Default to False
+get_accuracy = False
 
 def handler(signal_received, frame):
     global phase_database, algo
@@ -51,8 +56,7 @@ def handler(signal_received, frame):
     print('Exiting after saving the current database')
     with open('/home/ubuntu/data/phase_db_' + algo, 'wb') as f:
         pickle.dump(phase_database, f)
-    exit(0)
-
+    print_and_exit(0)
 
 def predict_naive(cur_phase):
     global prev1_resource
@@ -161,7 +165,7 @@ def parse_resource_agg(file):
         print(cur_phase)
         with open('/home/ubuntu/data/phase_db_' + algo, 'wb') as f:
             pickle.dump(phase_database, f)
-        sys.exit(0)
+        print_and_exit(0)
     # process line by line
     resource_usage = [0] * len(lines[0].split(','))
     # print("Number of resources ", resource_usage)
@@ -184,7 +188,7 @@ def read_remote_profile(server):
                 if(len(line) == 0):
                     print("Anomaly Detected.  The following is the stacktrace ")
                     print(cur_phase)
-                    sys.exit(0)
+                    print_and_exit(0)
                 f.write(line)
 
         # accumulate resource usage
@@ -196,23 +200,9 @@ def read_remote_profile(server):
                 if(len(line) == 0):
                     print("Anomaly Detected.  The following is the stacktrace ")
                     print(cur_phase)
-                    sys.exit(0)
+                    print_and_exit(0)
                 f.write(line)
 
-
-# returns 0 if ok, 1 if otherwise
-# does not prevent string injection attacks
-def transfer_file_if_exists(server, remotepath, timeout, localpath):
-    command = "timeout --foreground " + timeout + " scp " + server + ":" + remotepath + " " + localpath
-    return subprocess.call(command + "> /dev/null 2>&1", shell=True)
-
-def get_ssh_file_contents(server, remotepath, timeout):
-    command = "timeout --foreground " + timeout + " ssh -q " + server + " cat '" + remotepath + "'"
-    try:
-        output = subprocess.check_output(command, shell=True)
-        return [0, output]
-    except subprocess.CalledProcessError as err:
-        return [err.returncode, err.output]
 
 def stacktrace_helper():
     global servers
@@ -230,16 +220,13 @@ def stacktrace_helper():
         # When anomaly is run in any of the slaves, ssh also takes longer, so the timeout heuristics
         # is simple but powerful to detect those anomalies, though the timeout value should change
         # system to system
-        retcount = get_ssh_file_contents(s, "/home/ubuntu/data/current_aggregate_count", 10)
-        if (retcount[0] != 0):
-            return [1, set([]), []]
-
-        count = int(retcount[1])
-
-        retval = transfer_file_if_exists(s, "/home/ubuntu/data/threaddump_aggregate_" + count, 10, "./threaddump_agg")
+        command = "timeout --foreground 2 ssh -q -t " + s + " 'cat /home/ubuntu/data/threaddump_data' " \
+                                     ">> ./threaddump_agg"
+        os.system(command)
         # accumulate resource usage
-        transfer_file_if_exists(s, "/home/ubuntu/data/resource_data", 10, "./resource_agg")
-
+        command = "timeout --foreground 2 ssh -q -t " + s + " 'cat /home/ubuntu/data/resource_data' " \
+                                     ">> ./resource_agg"
+        os.system(command)
         # read_remote_profile(s)
 
     functions = []
@@ -249,7 +236,7 @@ def stacktrace_helper():
     resource_agg = parse_resource_agg("./resource_agg")
     functions = [i.strip() for i in functions]
 
-    return [retval, set(functions), resource_agg]
+    return [set(functions), resource_agg]
 
 
 def detect_phase_change(old_trace, cur_trace):
@@ -465,18 +452,6 @@ def update_phase_database(phase_string, prev2_res, prev1_res, cur_res):
         add_models(phase_string, cur_res)
 
 
-    ### DATA COLLECTION CODE ### -- REMOVE LATER
-    num_res = len(cur_res)
-
-    res_temp = []
-    for r in range(num_res):
-        res_temp.append([prev2_res[r], prev1_res[r], cur_res[r]])
-
-    if ("all_data" not in phase_database[cur_phase]):
-        phase_database[cur_phase]["all_data"] = []
-    phase_database[cur_phase]["all_data"].append(res_temp)
-
-
 def mean_absolute_percentage_error(y_true, y_pred):
     # replace 0 with a small number to avoid div by zero
     y_true = [i if i != 0 else 0.001 for i in y_true]
@@ -512,7 +487,7 @@ def detect_anomaly(predicted, cur_resources, cur_phase, phase_status):
         print(cur_phase)
         with open('/home/ubuntu/data/phase_db_' + algo, 'wb') as f:
             pickle.dump(phase_database, f)
-        exit(0)
+        print_and_exit(0)
     # if similarity < 90:
     #     print("Anomaly detected ", similarity, predicted, cur_resources)
 
@@ -520,20 +495,20 @@ def get_current_stage():
     global interval, phase_database
     global prev1_resource, prev2_resource
 
-    old_data = stacktrace_helper()  # returns [retval, func_set, [res1 .. resN]]
+    old_data = stacktrace_helper()  # returns [func_set, [res1 .. resN]]
     time.sleep(interval)
     cur_data = stacktrace_helper()
 
     # populate the meta-inputs
     prev2_resource = prev1_resource
-    prev1_resource = old_data[2]
+    prev1_resource = old_data[1]
 
     # remove the thread information, just use stacktraces for simplicity
-    old_trace = set([i.split("***")[0] for i in old_data[1]])
-    cur_trace = set([i.split("***")[0] for i in cur_data[1]])
+    old_trace = set([i.split("***")[0] for i in old_data[0]])
+    cur_trace = set([i.split("***")[0] for i in cur_data[0]])
 
     # detect phase change
-    changed = detect_phase_change(old_data[1], cur_data[1])
+    changed = detect_phase_change(old_data[0], cur_data[0])
 
     # form the key for storing in phase database
     phase_string = form_phase_string(old_trace, cur_trace, changed)
@@ -544,11 +519,11 @@ def get_current_stage():
     #     phase_database.add(phase_string)
     #     print("New phase " )
 
-    return phase_string, cur_data[2]
+    return phase_string, cur_data[1]
 
 
 def initialize():
-    global phase_database, algo
+    global phase_database, algo, get_accuracy
 
     # for graceful exit
     signal(SIGINT, handler)
@@ -559,6 +534,30 @@ def initialize():
             phase_database = pickle.load(f)
             print("Reloaded phase DB ")
 
+    if len(sys.argv) == 3:
+        get_accuracy = bool(int(sys.argv[2]))    # takes a 0 or 1 from cmd line
+
+def MAPE(y_true, y_pred):
+    y_true, y_pred = np.array(y_true), np.array(y_pred) # convert to numpy arrays
+    return np.mean(np.abs((y_true - y_pred) / (y_true + 1e-8))) * 100
+
+def print_and_exit(code):
+    global actual_resources, predicted_resources, get_accuracy
+
+    if (get_accuracy and actual_resources and predicted_resources):
+        # CPU resource usage accuracy
+        actual_resources_cpu = [resource[0] for resource in actual_resources]
+        predicted_resources_cpu = [resource[0] for resource in predicted_resources]
+        e_cpu = MAPE(actual_resources_cpu, predicted_resources_cpu)
+        print('\nError CPU: %.3f %%' % (e_cpu))
+
+        # Memory usage accuracy
+        actual_resources_mem = [resource[1] for resource in actual_resources]
+        predicted_resources_mem = [resource[1] for resource in predicted_resources]
+        e_mem = MAPE(actual_resources_mem, predicted_resources_mem)
+        print('Error MEM: %.3f %%' % (e_mem))
+
+    sys.exit(code)
 
 def run_job():
     global prev1_resource, prev2_resource, num_resources, cur_phase
@@ -572,8 +571,13 @@ def run_job():
     else:
         predicted, phase_status = get_prediction(cur_phase)
 
-    # print("Predicted resource usage ", predicted)
+    print("Predicted resource usage: ", predicted)
     detect_anomaly(predicted, cur_resources, cur_phase, phase_status)
+
+    # keep track of predicted and actual resource values
+    if (get_accuracy):
+        predicted_resources.append(predicted)
+        actual_resources.append(cur_resources)
 
     # update model based on current profile
     update_phase_database(cur_phase, prev2_resource, prev1_resource,
@@ -582,17 +586,14 @@ def run_job():
     # one more update
     prev1_resource = cur_resources
 
-    print(prev2_resource, prev1_resource, cur_resources)
-
-
-
 
 if __name__ == '__main__':
     initialize()
     while True:
         try:
             run_job()
+        except KeyboardInterrupt:
+            print_and_exit(0)
         except Exception as e:
             print(e)
             continue
-
