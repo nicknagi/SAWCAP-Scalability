@@ -23,8 +23,23 @@ class Predictor:
     def __init__(self):
         pass
 
-    def setAlgo(self, algo):
+    def get_algo(self):
+        return self.algo
+
+    def set_algo(self, algo):
         self.algo = algo
+
+    def get_prev1_resource(self):
+        return self.prev1_resource
+    
+    def set_prev1_resource(self, resouce):
+        self.prev1_resource = resouce
+
+    def get_prev2_resource(self):
+        return self.prev2_resource
+
+    def set_prev2_resource(self, resource):
+        self.prev2_resource = resource
 
     def predict_naive(self, cur_phase):
         return self.prev1_resource
