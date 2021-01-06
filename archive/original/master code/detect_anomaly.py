@@ -50,18 +50,19 @@ actual_resources = []
 # flag to record accuracy. Turn off when benchmarking to prevent memory overhead. Default to False
 get_accuracy = False
 
+# Exit after catching a Keyboard Interrupt
 def handler(signal_received, frame):
     global phase_database, algo, actual_resources, predicted_resources, get_accuracy
     # Handle any cleanup here
-    print("\n### Error Rates ###")
+    
+    if (get_accuracy and actual_resources and predicted_resources):
+        print("\n### Error Rates ###")
 
-    if (get_accuracy):
         # CPU resource usage accuracy
         actual_resources_cpu = [resource[0] for resource in actual_resources]
         predicted_resources_cpu = [resource[0] for resource in predicted_resources]
         e_cpu = SMAPE(actual_resources_cpu, predicted_resources_cpu)
         print('Error CPU: %.3f %%' % (e_cpu))
-
 
         # Memory usage accuracy
         actual_resources_mem = [resource[1] for resource in actual_resources]
@@ -75,10 +76,30 @@ def handler(signal_received, frame):
 
     sys.exit(2)
 
+# Exit gracefully after detecting an anomaly
+def print_and_exit(code):
+    global actual_resources, predicted_resources, get_accuracy
+
+    if (get_accuracy and actual_resources and predicted_resources):
+        print("\n### Error Rates ###")
+
+        # CPU resource usage accuracy
+        actual_resources_cpu = [resource[0] for resource in actual_resources]
+        predicted_resources_cpu = [resource[0] for resource in predicted_resources]
+        e_cpu = SMAPE(actual_resources_cpu, predicted_resources_cpu)
+        print('Error CPU: %.3f %%' % (e_cpu))
+
+        # Memory usage accuracy
+        actual_resources_mem = [resource[1] for resource in actual_resources]
+        predicted_resources_mem = [resource[1] for resource in predicted_resources]
+        e_mem = SMAPE(actual_resources_mem, predicted_resources_mem)
+        print('Error MEM: %.3f %%' % (e_mem))
+
+    sys.exit(code)
+
 def predict_naive(cur_phase):
     global prev1_resource
     return prev1_resource
-
 
 def predict_individual_lasso(model, X):
     # print(X)
@@ -87,7 +108,6 @@ def predict_individual_lasso(model, X):
 def predict_individual_agg(model, X):
     # print(X)
     return model.predict(X)
-
 
 def predict_lasso(cur_phase):
     global phase_database, prev1_resource
@@ -107,12 +127,9 @@ def predict_lasso(cur_phase):
                 # prediction is returned as a 1D Array
                 predictions.append(float(pred[0]))
             return predictions
-        except KeyboardInterrupt:
-            print_and_exit(1)
         except Exception as e:
             print("Probably not fitted model", e)
             return prev1_resource
-
 
 def predict_agg(cur_phase):
     global phase_database, prev1_resource
@@ -134,14 +151,11 @@ def predict_agg(cur_phase):
                 return predictions
             else:
                 return prev1_resource
-        except KeyboardInterrupt:
-            print_and_exit(1)
         except Exception as e:
             print("Probably not fitted model", e)
             return prev1_resource
     # global prev1_resource
     # return prev1_resource
-
 
 def prediction_helper(cur_phase):
     global algo
@@ -151,7 +165,6 @@ def prediction_helper(cur_phase):
         return predict_lasso(cur_phase)
     elif algo == "agg":
         return predict_agg(cur_phase)
-
 
 def get_prediction(cur_phase):
     global phase_database, prev1_resource, prev2_resource, num_resources
@@ -170,7 +183,6 @@ def get_prediction(cur_phase):
         return prev1_resource, "seen"
     else:
         return prediction_helper(cur_phase), "seen"
-
 
 def parse_resource_agg(file):
     global servers, cur_phase
@@ -224,7 +236,6 @@ def read_remote_profile(server):
                     print_and_exit(0)
                 f.write(line)
 
-
 def stacktrace_helper():
     global servers
     # this function connects to the servers, fetches the threaddump, aggregates
@@ -259,7 +270,6 @@ def stacktrace_helper():
 
     return [set(functions), resource_agg]
 
-
 def detect_phase_change(old_trace, cur_trace):
     # phase change is detected by comparing the set of functions between
     # the current timestamp with the previous timestamp
@@ -283,7 +293,6 @@ def detect_phase_change(old_trace, cur_trace):
     else:
         return False
 
-
 def form_phase_string(old_trace, cur_trace, changed):
     # create phase_string based on phase change or not.
     # if no phase change, then only put the intersection
@@ -297,7 +306,6 @@ def form_phase_string(old_trace, cur_trace, changed):
 
     return phase_string
 
-
 def add_models(cur_phase, cur_res):
     # intiialize LASSO models with the number of resources
     global phase_database, algo
@@ -308,7 +316,6 @@ def add_models(cur_phase, cur_res):
                 linear_model.Lasso(alpha=0.1))
         elif algo == 'agg':
             phase_database[cur_phase]["models"].append(0)
-
 
 def add_profile(cur_phase, prev2_res, prev1_res, cur_res):
     global phase_database
@@ -323,7 +330,6 @@ def add_profile(cur_phase, prev2_res, prev1_res, cur_res):
     # print("Res temp ", res_temp)
     phase_database[cur_phase]["temp_data"].append(res_temp)
 
-
 def format_data(cur_phase, res_index):
     # format data from the temporary profile collected
     # res_index tells the resource we are modeling for e.g. CPU or memory
@@ -336,7 +342,6 @@ def format_data(cur_phase, res_index):
         X.append([temp_data[i][res_index][0], temp_data[i][res_index][1]])
         Y.append(temp_data[i][res_index][2])
     return X, Y
-
 
 def generate_synthetic(cur_phase, model):
     # generates synthetic data based on existing model so that we can
@@ -357,7 +362,6 @@ def generate_synthetic(cur_phase, model):
     # print("Synthetic ", X, Y)
     return X, Y
 
-
 def update_lasso(cur_phase):
     # update using the batch of data
     global phase_database, prev1_resource
@@ -374,8 +378,6 @@ def update_lasso(cur_phase):
         tempY = []
         try:
             tempX, tempY = generate_synthetic(cur_phase, model)
-        except KeyboardInterrupt:
-            print_and_exit(1)
         except Exception as e:
             print("Probably not fitted model", e)
 
@@ -384,7 +386,6 @@ def update_lasso(cur_phase):
 
         model.fit(X, Y)
         phase_database[cur_phase]["models"][i] = model
-
 
 def update_agg(cur_phase):
     # update using the batch of data
@@ -416,7 +417,6 @@ def update_agg(cur_phase):
         # model.fit(X, Y)
         # phase_database[cur_phase]["models"][i] = model
 
-
 def update_helper(cur_phase):
     # update ML model for the batch collected
     global algo
@@ -426,7 +426,6 @@ def update_helper(cur_phase):
         pass
     if algo == "agg":
         update_agg(cur_phase)
-
 
 def update_ml_model(phase_string):
     # do not build model for an idle phase (no trace string)
@@ -439,7 +438,6 @@ def update_ml_model(phase_string):
 
     # reset the profiling data
     phase_database[phase_string]["temp_data"] = []
-
 
 def update_phase_database(phase_string, prev2_res, prev1_res, cur_res):
     # do not build model for an idle phase (no trace string)
@@ -474,7 +472,6 @@ def update_phase_database(phase_string, prev2_res, prev1_res, cur_res):
         # initialize the models
         add_models(phase_string, cur_res)
 
-
 def mean_absolute_percentage_error(y_true, y_pred):
     # replace 0 with a small number to avoid div by zero
     y_true = [i if i != 0 else 0.001 for i in y_true]
@@ -483,6 +480,9 @@ def mean_absolute_percentage_error(y_true, y_pred):
     y_true, y_pred = np.array(y_true), np.array(y_pred)
     return np.mean(np.abs((y_true - y_pred) / y_true)) * 100
 
+def SMAPE(y_true, y_pred):
+    y_true, y_pred = np.array(y_true), np.array(y_pred) # convert to numpy arrays
+    return np.mean(np.abs(y_true - y_pred) / (np.abs(y_true) + np.abs(y_pred) + 1e-8)) * 100
 
 def detect_anomaly(predicted, cur_resources, cur_phase, phase_status):
     # compare the predicted resource with the current resource
@@ -544,7 +544,6 @@ def get_current_stage():
 
     return phase_string, cur_data[1]
 
-
 def initialize():
     global phase_database, algo, get_accuracy
 
@@ -560,13 +559,6 @@ def initialize():
     if len(sys.argv) == 3:
         get_accuracy = bool(int(sys.argv[2]))    # takes a 0 or 1 from cmd line
 
-def SMAPE(y_true, y_pred):
-    y_true, y_pred = np.array(y_true), np.array(y_pred) # convert to numpy arrays
-    return np.mean(np.abs(y_true - y_pred) / (np.abs(y_true) + np.abs(y_pred) + 1e-8)) * 100
-
-def print_and_exit(code):
-    sys.exit(code)
-
 def run_job():
     global prev1_resource, prev2_resource, num_resources, cur_phase
     # get current phase and resource information
@@ -579,7 +571,7 @@ def run_job():
     else:
         predicted, phase_status = get_prediction(cur_phase)
 
-    print("Predicted resource usage: ", predicted)
+    # print("Predicted resource usage: ", predicted)
     detect_anomaly(predicted, cur_resources, cur_phase, phase_status)
 
     # keep track of predicted and actual resource values
@@ -600,8 +592,6 @@ if __name__ == '__main__':
     while True:
         try:
             run_job()
-        except KeyboardInterrupt:
-            print_and_exit(1)
         except Exception as e:
             print(e)
             continue
