@@ -2,32 +2,32 @@ from sklearn import linear_model
 import numpy as np
 
 class Predictor:
-
-    # algorithm used for predictions
-    algo = "lasso"
-
-    # store resources
-    predicted_resources = []
-    actual_resources = []
-
-    # we use the resource usage of prev 2 phases for building the machine learning
-    # model.  These are the meta-inputs
-    prev1_resource = []
-    prev2_resource = []
-
-    # batch size for model update
-    batch_size = 3  
-
-    num_resources = 2 # currently support CPU and memory
-
+    
     def __init__(self):
-        pass
+        self.num_resources = 2  # currently support CPU and memory
+        self.batch_size = 3     # batch size for model update
+        self.algo = "lasso"     # algorithm used for predictions
+
+        # we use the resource usage of prev 2 phases for building the machine learning
+        # model.  These are the meta-inputs
+        self.prev1_resource = []
+        self.prev2_resource = []
+
+        # store resources
+        self.predicted_resources = []
+        self.actual_resources = []
 
     def get_algo(self):
         return self.algo
 
     def set_algo(self, algo):
         self.algo = algo
+
+    def get_actual_resources(self):
+        return self.actual_resources
+
+    def get_predicted_resources(self):
+        return self.predicted_resources
 
     def get_prev1_resource(self):
         return self.prev1_resource
@@ -220,7 +220,7 @@ class Predictor:
         y_true, y_pred = np.array(y_true), np.array(y_pred)
         return np.mean(np.abs((y_true - y_pred) / y_true)) * 100
 
-    def SMAPE(y_true, y_pred):
+    def SMAPE(self, y_true, y_pred):
         y_true, y_pred = np.array(y_true), np.array(y_pred) # convert to numpy arrays
         return np.mean(np.abs(y_true - y_pred) / (np.abs(y_true) + np.abs(y_pred) + 1e-8)) * 100
         
