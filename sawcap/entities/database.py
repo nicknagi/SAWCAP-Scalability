@@ -1,57 +1,55 @@
-from collections import defaultdict
-import uuid
-
-# Class assumes workload class exists
-
 '''
 Structure of the database dictionary:
     {
-        "characterization_queue": [workload3],
-        "workload_classes": {
-            "uuid4-1" : {
-                "workloads": [workload1, workload4],
-                "model": model-key -- predictor maintains internal data_structure that stores the models
+        "triplets": [snapshot_prev2, snapshot_prev1, snapshot_curr],
+        "phases": {
+            "phase-1" : {
+                "temp_data": [ [[cpu_p1, cpu_p2, cpu_c], [mem_p1, mem_p2, mem_c], ..], <-prof1
+                [[cpu_p1, cpu_p2, cpu_c], [mem_p1, mem_p2, mem_c], ..], <-prof2
+                               .......
+                [[cpu_p1, cpu_p2, cpu_c], [mem_p1, mem_p2, mem_c], ..]]<-prof10,
+                "models": [model_cpu, model_mem, ...]
             },
-            "uuid4-2" : {
-                "workloads": [workload2],
-                "model": model-key
+            "phase-2" : {
+                "temp_data": Same as above,
+                "models": model-key
             }
         }
     }
 '''
+
 class Database:
     def __init__(self):
         self._database = dict()
-        self._database["characterization_queue"] = list()
-        self._database["workload_classes"] = dict()
+        self._database["triplets"] = [None] * 3
+        self._database["phases"] = dict()
 
-    def add_new_uncharacterized_workload(self, workload):
-        self._database["characterization_queue"].append(workload)
-    
-    def remove_workload_from_characterization_queue(self, workload):
-        self._database["characterization_queue"].remove(workload)
+    def add_new_snapshot(self, snapshot):
+        self._database["triplets"][0] = self._database["triplets"][1]
+        self._database["triplets"][1] = self._database["triplets"][2]
+        self._database["triplets"][2] = snapshot
 
-    def create_new_workload_class(self):
-        new_class_id = str(uuid.uuid4())
-        self._database["workload_classes"][new_class_id] = dict()
-        self._database["workload_classes"][new_class_id]["workloads"] = list()
+    def create_new_phase(self, phase_string):
+        self._database["phases"][phase_string] = dict()
+        self._database["phases"][phase_string]["temp_data"] = list()
+        self._database["phases"][phase_string]["models"] = list()
 
-        return new_class_id
-    
-    def add_workload_to_class(self, workload, class_id):
-        self._database["workload_classes"][class_id]["workloads"].append(workload)
-    
-    def add_model_to_workload_class(self, model_id, class_id):
-        self._database["workload_classes"][class_id]["model"] = model_id
+    def add_profile_to_phase(self, profile, phase_string):
+        self._database["phases"][phase_string]["temp_data"].append(profile)
 
-    def get_uncharacterized_workloads(self):
-        return self._database["characterization_queue"]
-    
-    def get_model_id_from_class(self, workload_class_id):
-        return self._database["workload_classes"][workload_class_id]["model"]
-    
-    def get_all_workload_classes(self):
-        return list(self._database["workload_classes"].keys())
+    def add_models_to_phase(self, models, phase_string):
+        self._database["phases"][phase_string]["models"].append(models)
 
-    def get_workloads_from_workload_class(self, workload_class_id):
-        return self._database["workload_classes"][workload_class_id]["workloads"]
+    def get_triplets(self):
+        return self._database["triplets"]
+
+    def get_models_from_phase(self, phase_string):
+        return self._database["phases"][phase_string]["models"]
+
+    def get_data_from_phase(self, phase_string):
+        return self._database["phases"][phase_string]["temp_data"]
+
+    def check_phase_exists(self, phase_string):
+        if phase_string in self._database["phases"]:
+            return True
+        return False
