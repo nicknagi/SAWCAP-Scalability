@@ -51,12 +51,29 @@ actual_resources = []
 get_accuracy = False
 
 def handler(signal_received, frame):
-    global phase_database, algo
+    global phase_database, algo, actual_resources, predicted_resources, get_accuracy
     # Handle any cleanup here
-    print('Exiting after saving the current database')
+    print("\n### Error Rates ###")
+
+    if (get_accuracy):
+        # CPU resource usage accuracy
+        actual_resources_cpu = [resource[0] for resource in actual_resources]
+        predicted_resources_cpu = [resource[0] for resource in predicted_resources]
+        e_cpu = SMAPE(actual_resources_cpu, predicted_resources_cpu)
+        print('Error CPU: %.3f %%' % (e_cpu))
+
+
+        # Memory usage accuracy
+        actual_resources_mem = [resource[1] for resource in actual_resources]
+        predicted_resources_mem = [resource[1] for resource in predicted_resources]
+        e_mem = SMAPE(actual_resources_mem, predicted_resources_mem)
+        print('Error MEM: %.3f %%' % (e_mem))
+
+    print('\nExiting after saving the current database')
     with open('/home/ubuntu/data/phase_db_' + algo, 'wb') as f:
         pickle.dump(phase_database, f)
-    print_and_exit(0)
+
+    sys.exit(2)
 
 def predict_naive(cur_phase):
     global prev1_resource
@@ -90,6 +107,8 @@ def predict_lasso(cur_phase):
                 # prediction is returned as a 1D Array
                 predictions.append(float(pred[0]))
             return predictions
+        except KeyboardInterrupt:
+            print_and_exit(1)
         except Exception as e:
             print("Probably not fitted model", e)
             return prev1_resource
@@ -115,6 +134,8 @@ def predict_agg(cur_phase):
                 return predictions
             else:
                 return prev1_resource
+        except KeyboardInterrupt:
+            print_and_exit(1)
         except Exception as e:
             print("Probably not fitted model", e)
             return prev1_resource
@@ -353,6 +374,8 @@ def update_lasso(cur_phase):
         tempY = []
         try:
             tempX, tempY = generate_synthetic(cur_phase, model)
+        except KeyboardInterrupt:
+            print_and_exit(1)
         except Exception as e:
             print("Probably not fitted model", e)
 
@@ -537,26 +560,11 @@ def initialize():
     if len(sys.argv) == 3:
         get_accuracy = bool(int(sys.argv[2]))    # takes a 0 or 1 from cmd line
 
-def MAPE(y_true, y_pred):
+def SMAPE(y_true, y_pred):
     y_true, y_pred = np.array(y_true), np.array(y_pred) # convert to numpy arrays
-    return np.mean(np.abs((y_true - y_pred) / (y_true + 1e-8))) * 100
+    return np.mean(np.abs(y_true - y_pred) / (np.abs(y_true) + np.abs(y_pred) + 1e-8)) * 100
 
 def print_and_exit(code):
-    global actual_resources, predicted_resources, get_accuracy
-
-    if (get_accuracy and actual_resources and predicted_resources):
-        # CPU resource usage accuracy
-        actual_resources_cpu = [resource[0] for resource in actual_resources]
-        predicted_resources_cpu = [resource[0] for resource in predicted_resources]
-        e_cpu = MAPE(actual_resources_cpu, predicted_resources_cpu)
-        print('\nError CPU: %.3f %%' % (e_cpu))
-
-        # Memory usage accuracy
-        actual_resources_mem = [resource[1] for resource in actual_resources]
-        predicted_resources_mem = [resource[1] for resource in predicted_resources]
-        e_mem = MAPE(actual_resources_mem, predicted_resources_mem)
-        print('Error MEM: %.3f %%' % (e_mem))
-
     sys.exit(code)
 
 def run_job():
@@ -593,7 +601,7 @@ if __name__ == '__main__':
         try:
             run_job()
         except KeyboardInterrupt:
-            print_and_exit(0)
+            print_and_exit(1)
         except Exception as e:
             print(e)
             continue
