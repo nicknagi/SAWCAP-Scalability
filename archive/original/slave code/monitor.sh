@@ -1,7 +1,6 @@
 #!/bin/bash
 
 data_dir="/home/ubuntu/data"
-mkdir -p ${data_dir}
 if [ "$#" -ne 1 ]; then
         echo 'Usage monitor.sh pid'
         exit
