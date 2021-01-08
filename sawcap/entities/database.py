@@ -18,10 +18,13 @@ Structure of the database dictionary:
     }
 '''
 
+from config import NUM_RESOURCES
+from entities.snapshot import Snapshot
+
 class Database:
     def __init__(self):
         self._database = dict()
-        self._database["triplets"] = [None] * 3
+        self._database["triplets"] = [Snapshot([0]*NUM_RESOURCES, set()) for _ in range(3)]
         self._database["phases"] = dict()
 
     def add_new_snapshot(self, snapshot):
@@ -38,7 +41,7 @@ class Database:
         self._database["phases"][phase_string]["temp_data"].append(profile)
 
     def add_models_to_phase(self, models, phase_string):
-        self._database["phases"][phase_string]["models"].append(models)
+        self._database["phases"][phase_string]["models"] = models
 
     def get_triplets(self):
         return self._database["triplets"]
@@ -49,7 +52,21 @@ class Database:
     def get_data_from_phase(self, phase_string):
         return self._database["phases"][phase_string]["temp_data"]
 
+    def flush_data_from_phase(self, phase_string):
+        if (phase_string != ""):
+            self._database["phases"][phase_string]["temp_data"] = list()
+
     def check_phase_exists(self, phase_string):
         if phase_string in self._database["phases"]:
             return True
         return False
+    
+    def get_curr_resource(self):
+        return self._database["triplets"][2].resource_data
+    
+    def get_prev1_resource(self):
+        return self._database["triplets"][1].resource_data
+    
+    def get_prev2_resource(self):
+        return self._database["triplets"][0].resource_data
+    

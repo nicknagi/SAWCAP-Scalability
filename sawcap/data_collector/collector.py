@@ -1,5 +1,6 @@
 import os
 from config import DATA_DIR
+from config import NUM_RESOURCES
 
 class DataCollector:
 
@@ -14,7 +15,7 @@ class DataCollector:
 		with open(file) as f:
 			lines = f.readlines()
 		
-		num_resources = len(lines[0].split(','))
+		num_resources = NUM_RESOURCES
 		resource_usage = [0] * num_resources
 
 		for line in lines:
