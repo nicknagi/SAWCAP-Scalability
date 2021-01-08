@@ -8,7 +8,6 @@ class Snapshot:
         self.resource_data = raw_resource_data
         self.stacktrace_data = stacktrace_data
 
-
     # the current snapshot_collection is treated as the reference point
     def stacktrace_similarity(self, other_snapshot_collection):
         common_stacktraces = self.stacktrace_data.intersection(

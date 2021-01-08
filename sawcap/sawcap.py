@@ -6,7 +6,7 @@ from predictor.predictor import Predictor
 from entities.snapshot import Snapshot
 from time import sleep
 from characterizer.characterizer import Characterizer
-from config import INTERVAL, WORKERS, LOG_LEVEL
+from config import INTERVAL, WORKERS, LOG_LEVEL, ENABLE_STATS
 import logging
 
 import numpy as np
@@ -15,7 +15,7 @@ import sys
 logging.basicConfig(format='sawcap.py: %(asctime)s - %(message)s',
                     datefmt='%d-%b-%y %H:%M:%S', level=LOG_LEVEL)
 
-#Stats
+# Data structure to hold data for calculating statistics
 stats = {
     "actual_data": [],
     "predicted_data": []
@@ -31,19 +31,28 @@ class Sawcap:
 
     def run(self):
         while True:
-            self._get_new_snapshot()
+            self._get_new_snapshot() # prev1 (prev 2 is last prev1)
             sleep(INTERVAL)
-            self._get_new_snapshot()
+            self._get_new_snapshot() # curr
 
+            # Check which phase we are in currently
             self.curr_phase = self.characterizer.get_current_phase()
-            predicted = self.predictor.get_prediction(self.curr_phase)
 
-            stats["predicted_data"].append(predicted[0])
-            stats["actual_data"].append(self.database.get_triplets()[-1].resource_data)
-            calculate_errors()
-            logging.info("Actual: " + str(["{:.2f}".format(a) for a in self.database.get_triplets()[-1].resource_data]) + " Predicted:" + str(["{:.2f}".format(a) for a in predicted[0]]))
+            # Based on the current phase make a prediction
+            predicted = self.predictor.get_prediction(self.curr_phase)
             
+            # Log data for error calculation and print predictions
+            if ENABLE_STATS:
+                stats["predicted_data"].append(predicted[0])
+                stats["actual_data"].append(self.database.get_triplets()[-1].resource_data)
+                calculate_errors()
+
+            logging.info("Actual: " + str(["{:.2f}".format(a) for a in self.database.get_curr_resource().resource_data]) + " Predicted:" + str(["{:.2f}".format(a) for a in predicted[0]]))
+            
+            # Add profile to phase database
             self.characterizer.update_phase_database(self.curr_phase)
+
+            # Update ML model for current phase, if possible
             self.predictor.update_ml_model(self.curr_phase)
 
     def _get_new_snapshot(self):

@@ -11,33 +11,39 @@ class Predictor:
     def get_prediction(self, cur_phase):
         # if no phase available
         if cur_phase == "":
-            # print(" Empty current phase")
-            return ([0] * NUM_RESOURCES, "idle")
+            return [0] * NUM_RESOURCES
+        
+        # load prev1, prev2 and curr from database
         self._get_triplet_values()
-        # if not there yet
+
+        # if phase does not exist yet, return prev1
         if not self.database.check_phase_exists(cur_phase):
-            # print(" Not in Phase DB yet")
-            return self.prev1_resource, "unseen"
-        # print("Existing phase in DB")
+            return self.prev1_resource
+
         # if no model has been built yet, just use naive prediction
         if len(self.database.get_models_from_phase(cur_phase)) == 0:
-            return self.prev1_resource, "seen"
+            return self.prev1_resource
         else:
-            return self._prediction_helper(cur_phase), "seen"
+            return self._prediction_helper(cur_phase)
     
     def update_ml_model(self, phase_string):
-        # do not build model for an idle phase (no trace string)
+        # do not build model for an idle phase (no trace string) or if phase doesn't exist
         if phase_string == "" or not self.database.check_phase_exists(phase_string):
             return
         
         if len(self.database.get_data_from_phase(phase_string)) == BATCH_SIZE:
+            # load prev1, prev2 and curr from database
             self._get_triplet_values()
 
-            print("updating the model", hash(phase_string))
             self._update_helper(phase_string)
 
-            # reset the profiling data
+            # reset the profiling data for current phase
             self.database.flush_data_from_phase(phase_string)
+
+    def _get_triplet_values(self):
+        self.prev2_resource = self.database.get_prev2_resource()
+        self.prev1_resource = self.database.get_prev1_resource()
+        self.curr_resource = self.database.get_curr_resource()
 
     def _predict_naive(self, cur_phase):
         return self.prev1_resource
@@ -70,11 +76,6 @@ class Predictor:
         elif self.algo == "lasso":
             return self._predict_lasso(cur_phase)
     
-    def _get_triplet_values(self):
-        self.prev2_resource = self.database.get_prev2_resource()
-        self.prev1_resource = self.database.get_prev1_resource()
-        self.curr_resource = self.database.get_curr_resource()
-
     def _add_models(self, cur_phase):
         # intiialize LASSO models with the number of resources
         # print("*** Number of resources during model init ", len(cur_res))
@@ -85,7 +86,6 @@ class Predictor:
 
     def _format_data(self, cur_phase, res_index):
         # format data from the temporary profile collected
-        # res_index tells the resource we are modeling for e.g. CPU or memory
         temp_data = self.database.get_data_from_phase(cur_phase)
         X = []
         Y = []
@@ -113,17 +113,12 @@ class Predictor:
         return X, Y
 
     def _update_lasso(self, cur_phase):
-        # update using the batch of data
-        # do it for individual resources
-
         models = self.database.get_models_from_phase(cur_phase)
         if len(models) == 0:
             self._add_models(cur_phase)
 
         for i in range(NUM_RESOURCES):
             X, Y = self._format_data(cur_phase, i)
-            print(X, Y)
-
             model = self.database.get_models_from_phase(cur_phase)[i]
 
             tempX = []
@@ -141,8 +136,5 @@ class Predictor:
             self.database.get_models_from_phase(cur_phase)[i] = model
 
     def _update_helper(self, cur_phase):
-        # update ML model for the batch collected
         if self.algo == "lasso":
             self._update_lasso(cur_phase)
-        elif self.algo == "simple":
-            pass

@@ -1,6 +1,5 @@
 import os
-from config import DATA_DIR
-from config import NUM_RESOURCES
+from config import DATA_DIR, NUM_RESOURCES
 
 class DataCollector:
 
