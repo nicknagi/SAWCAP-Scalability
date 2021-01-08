@@ -6,7 +6,7 @@ from predictor.predictor import Predictor
 from entities.snapshot import Snapshot
 from time import sleep
 from characterizer.characterizer import Characterizer
-from config import INTERVAL, WORKERS, LOG_LEVEL, ENABLE_STATS
+from config import INTERVAL, WORKERS, LOG_LEVEL, ENABLE_STATS, DATA_DIR, STATS_FILE
 import logging
 
 import numpy as np
@@ -63,7 +63,7 @@ class Sawcap:
 
     # Exit after catching a Keyboard Interrupt
 def handler(signal_received, frame):
-    calculate_errors()
+    export_stats()
     sys.exit(2)
     
 def SMAPE(y_true, y_pred):
@@ -71,7 +71,7 @@ def SMAPE(y_true, y_pred):
     return np.mean(np.abs(y_true - y_pred) / (np.abs(y_true) + np.abs(y_pred) + 1e-8)) * 100
 
 def calculate_errors():
-    print("\n### Error Rates ###")
+    logging.info("\n### Accuracy Rates ###")
 
     actual_resources = stats["actual_data"]
     predicted_resources = stats["predicted_data"]
@@ -79,19 +79,33 @@ def calculate_errors():
     # CPU resource usage accuracy
     actual_resources_cpu = [resource[0] for resource in actual_resources]
     predicted_resources_cpu = [resource[0] for resource in predicted_resources]
-    e_cpu = SMAPE(actual_resources_cpu, predicted_resources_cpu)
-    logging.debug('Error CPU: %.3f %%' % (e_cpu))
+    acc_cpu = 100 - SMAPE(actual_resources_cpu, predicted_resources_cpu)
+    logging.info('CPU Prediction Accuracy: %.3f %%' % (acc_cpu))
 
     # Memory usage accuracy
     actual_resources_mem = [resource[1] for resource in actual_resources]
     predicted_resources_mem = [resource[1] for resource in predicted_resources]
-    e_mem = SMAPE(actual_resources_mem, predicted_resources_mem)
-    logging.debug('Error MEM: %.3f %%' % (e_mem))
+    acc_mem = 100 - SMAPE(actual_resources_mem, predicted_resources_mem)
+    logging.info('MEM Prediction Accuracy: %.3f %%' % (acc_mem))
+
+    return acc_cpu, acc_mem
+
+def export_stats():
+    acc_cpu, acc_mem = calculate_errors()
+    file_path = DATA_DIR + STATS_FILE
+
+    f = open(file_path, "a")
+    f.write("\n### Accuracy Rates ###\n")
+    f.write(f'CPU Prediction Accuracy: {acc_cpu:.3f}\n')
+    f.write(f'MEM Prediction Accuracy: {acc_mem:.3f}\n')
+    f.close()
 
 if __name__ == "__main__":
     # for graceful exit
-    from signal import signal, SIGINT
+    from signal import signal, SIGINT, SIGTERM
     signal(SIGINT, handler)
+    signal(SIGTERM, handler)
 
     sawcap = Sawcap()
     sawcap.run()
+
