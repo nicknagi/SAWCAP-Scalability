@@ -1,7 +1,7 @@
 import time
 import os
 import pickle
-from signal import signal, SIGINT
+from signal import signal, SIGINT, SIGTERM 
 from sys import exit
 import sys
 from sklearn import linear_model
@@ -10,7 +10,7 @@ import subprocess
 import logging
 
 logging.basicConfig(format='Old Code: %(asctime)s - %(message)s',
-                    datefmt='%d-%b-%y %H:%M:%S', level=logging.DEBUG)
+                    datefmt='%d-%b-%y %H:%M:%S', level=logging.CRITICAL)
 
 servers = ['172.31.15.58']
 interval = 2  # interval to determine phase change
@@ -47,6 +47,7 @@ prev1_resource = []
 prev2_resource = []
 
 DATA_DIR = "/home/ubuntu/data"
+STATS_FILE = "/sawcap_stats.txt"
 
 cur_phase = ""
 
@@ -56,29 +57,40 @@ actual_resources = []
 # flag to record accuracy. Turn off when benchmarking to prevent memory overhead. Default to False
 get_accuracy = False
 
+def export_stats(acc_cpu, acc_mem):
+    file_path = DATA_DIR + STATS_FILE
+
+    f = open(file_path, "a")
+    f.write("\n### Accuracy Rates ###\n")
+    f.write(f'CPU Prediction Accuracy: {acc_cpu:.3f}\n')
+    f.write(f'MEM Prediction Accuracy: {acc_mem:.3f}\n')
+    f.close()
+
 # Exit after catching a Keyboard Interrupt
 def handler(signal_received, frame):
     global phase_database, algo, actual_resources, predicted_resources, get_accuracy
     # Handle any cleanup here
     
     if (get_accuracy and actual_resources and predicted_resources):
-        print("\n### Error Rates ###")
+        print("\n### Accuracy Rates ###")
 
         # CPU resource usage accuracy
         actual_resources_cpu = [resource[0] for resource in actual_resources]
         predicted_resources_cpu = [resource[0] for resource in predicted_resources]
-        e_cpu = SMAPE(actual_resources_cpu, predicted_resources_cpu)
-        print('Error CPU: %.3f %%' % (e_cpu))
+        acc_cpu = 100 - SMAPE(actual_resources_cpu, predicted_resources_cpu)
+        print('CPU Prediction Accuracy: %.3f %%' % (acc_cpu))
 
         # Memory usage accuracy
         actual_resources_mem = [resource[1] for resource in actual_resources]
         predicted_resources_mem = [resource[1] for resource in predicted_resources]
-        e_mem = SMAPE(actual_resources_mem, predicted_resources_mem)
-        print('Error MEM: %.3f %%' % (e_mem))
+        acc_mem = 100 - SMAPE(actual_resources_mem, predicted_resources_mem)
+        print('MEM Prediction Accuracy: %.3f %%' % (acc_mem))
 
-    print('\nExiting after saving the current database')
-    with open('/home/ubuntu/data/phase_db_' + algo, 'wb') as f:
-        pickle.dump(phase_database, f)
+        export_stats(acc_cpu, acc_mem)
+
+    # print('\nExiting after saving the current database')
+    # with open('/home/ubuntu/data/phase_db_' + algo, 'wb') as f:
+    #     pickle.dump(phase_database, f)
 
     sys.exit(2)
 
@@ -87,19 +99,21 @@ def print_and_exit(code):
     global actual_resources, predicted_resources, get_accuracy
 
     if (get_accuracy and actual_resources and predicted_resources):
-        print("\n### Error Rates ###")
+        print("\n### Accuracy Rates ###")
 
         # CPU resource usage accuracy
         actual_resources_cpu = [resource[0] for resource in actual_resources]
         predicted_resources_cpu = [resource[0] for resource in predicted_resources]
-        e_cpu = SMAPE(actual_resources_cpu, predicted_resources_cpu)
-        print('Error CPU: %.3f %%' % (e_cpu))
+        acc_cpu = 100 - SMAPE(actual_resources_cpu, predicted_resources_cpu)
+        print('CPU Prediction Accuracy: %.3f %%' % (acc_cpu))
 
         # Memory usage accuracy
         actual_resources_mem = [resource[1] for resource in actual_resources]
         predicted_resources_mem = [resource[1] for resource in predicted_resources]
-        e_mem = SMAPE(actual_resources_mem, predicted_resources_mem)
-        print('Error MEM: %.3f %%' % (e_mem))
+        acc_mem = 100 - SMAPE(actual_resources_mem, predicted_resources_mem)
+        print('MEM Prediction Accuracy: %.3f %%' % (acc_mem))
+
+        export_stats(acc_cpu, acc_mem)
 
     sys.exit(code)
 
@@ -379,7 +393,7 @@ def update_lasso(cur_phase):
     # print("Number of resources ", len(prev1_resource))
     for i in range(len(prev1_resource)):
         X, Y = format_data(cur_phase, i)
-        print(X, Y)
+        # print(X, Y)
         model = phase_database[cur_phase]["models"][i]
         # TODO generate synthetic data using the existing model
         tempX = []
@@ -558,6 +572,7 @@ def initialize():
 
     # for graceful exit
     signal(SIGINT, handler)
+    signal(SIGTERM, handler)
 
     # load the the phase database if exists
     if os.path.isfile(f"{DATA_DIR}/phase_db_" + algo):
@@ -604,3 +619,4 @@ if __name__ == '__main__':
         except Exception as e:
             print(e)
             continue
+
