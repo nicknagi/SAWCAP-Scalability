@@ -12,7 +12,7 @@ import logging
 logging.basicConfig(format='Old Code: %(asctime)s - %(message)s',
                     datefmt='%d-%b-%y %H:%M:%S', level=logging.CRITICAL)
 
-servers = ['172.31.15.58']
+servers = ['172.31.15.58', '172.31.1.111']
 interval = 2  # interval to determine phase change
 
 # structure of phase database
