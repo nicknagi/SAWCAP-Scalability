@@ -318,7 +318,7 @@ def add_models(cur_phase, cur_res):
     # intiialize LASSO models with the number of resources
     global phase_database, algo
     # print("*** Number of resources during model init ", len(cur_res))
-    for res in cur_res:
+    for _ in cur_res:
         if algo == 'lasso':
             phase_database[cur_phase]["models"].append(
                 linear_model.Lasso(alpha=0.1))
@@ -355,14 +355,13 @@ def generate_synthetic(cur_phase, model):
     # generates synthetic data based on existing model so that we can
     # retrieve old model info
     global phase_database
-    temp_data = phase_database[cur_phase]["temp_data"]
     num_data_points = 5
     X=[]
     Y=[]
 
     # TODO somehow kep track of the max and min values so that data generation
     # is successful
-    for i in range(num_data_points):
+    for _ in range(num_data_points):
         X.append([np.random.randint(low=1, high=100, size=1)[0],
                   np.random.randint(low=1, high=100, size=1)[0]])
 
