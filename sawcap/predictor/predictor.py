@@ -1,30 +1,34 @@
 from sklearn import linear_model
 import numpy as np
 from config import BATCH_SIZE, NUM_RESOURCES
+from utils import MAPE
 
 class Predictor:
 
     def __init__(self, database, algo):
         self.database = database
         self.algo = algo
+        self.anomaly_confidence_state = 0
 
     def get_prediction(self, cur_phase):
+        phase_exists = False
         # if no phase available
         if cur_phase == "":
-            return [0] * NUM_RESOURCES
+            return [0] * NUM_RESOURCES, phase_exists
         
         # load prev1, prev2 and curr from database
         self._get_triplet_values()
 
         # if phase does not exist yet, return prev1
         if not self.database.check_phase_exists(cur_phase):
-            return self.prev1_resource
+            return self.prev1_resource, phase_exists
 
+        phase_exists = True
         # if no model has been built yet, just use naive prediction
         if len(self.database.get_models_from_phase(cur_phase)) == 0:
-            return self.prev1_resource
+            return self.prev1_resource, phase_exists
         else:
-            return self._prediction_helper(cur_phase)
+            return self._prediction_helper(cur_phase), phase_exists
     
     def update_ml_model(self, phase_string):
         # do not build model for an idle phase (no trace string) or if phase doesn't exist
@@ -39,6 +43,35 @@ class Predictor:
 
             # reset the profiling data for current phase
             self.database.flush_data_from_phase(phase_string)
+
+    def detect_anomaly(self, predicted, curr_resources, cur_phase, phase_exists):
+        # compare the predicted resource with the current resource
+        # each mismatch changes confidence state 
+        if cur_phase == "":
+            return
+
+        anomaly_confidence_state = self.anomaly_confidence_state
+        
+        if phase_exists == False:
+            # use simple heuristic of low CPU utilization for unseen phases
+            if curr_resources[0] < 10:
+                anomaly_confidence_state += 1
+            else:
+                anomaly_confidence_state -= 1
+        else:
+            # seen this phase before
+            error = MAPE(predicted, curr_resources)
+            if error > 50:
+                anomaly_confidence_state += 1
+            else:
+                anomaly_confidence_state -= 1
+        self.anomaly_confidence_state = anomaly_confidence_state
+
+        if self.anomaly_confidence_state > 5:
+            print("Anomaly Detected.")
+            print(cur_phase)
+            return True
+        return False
 
     def _get_triplet_values(self):
         self.prev2_resource = self.database.get_prev2_resource()
