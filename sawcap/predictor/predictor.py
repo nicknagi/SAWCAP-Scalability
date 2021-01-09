@@ -71,6 +71,7 @@ class Predictor:
             print("Anomaly Detected.")
             print(cur_phase)
             return True
+        print("No Anomaly Detected.")
         return False
 
     def _get_triplet_values(self):
@@ -113,7 +114,7 @@ class Predictor:
         # intiialize LASSO models with the number of resources
         # print("*** Number of resources during model init ", len(cur_res))
         models = []
-        for res in range(NUM_RESOURCES):
+        for _ in range(NUM_RESOURCES):
             models.append(linear_model.Lasso(alpha=0.1))
         self.database.add_models_to_phase(models, cur_phase)
 
@@ -133,12 +134,11 @@ class Predictor:
     def _generate_synthetic(self, cur_phase, model):
         # generates synthetic data based on existing model so that we can
         # retrieve old model info
-        temp_data = self.database.get_data_from_phase(cur_phase)
         num_data_points = 5
         X = []
         Y = []
 
-        for i in range(num_data_points):
+        for _ in range(num_data_points):
             X.append([np.random.randint(low=1, high=100, size=1)[0],
                       np.random.randint(low=1, high=100, size=1)[0]])
 
