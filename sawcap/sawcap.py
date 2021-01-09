@@ -41,15 +41,15 @@ class Sawcap:
 
             # Based on the current phase make a prediction
             predicted, phase_exists = self.predictor.get_prediction(self.curr_phase)
-            
+            print(predicted)
             # Log data for error calculation and print predictions
             if ENABLE_STATS:
-                stats["predicted_data"].append(predicted[0])
-                stats["actual_data"].append(self.database.get_triplets()[-1].resource_data)
+                stats["predicted_data"].append(predicted)
+                stats["actual_data"].append(self.database.get_curr_resource())
                 calculate_errors()
 
-            logging.info("Actual: " + str(["{:.2f}".format(a) for a in self.database.get_curr_resource().resource_data]) + " Predicted:" + str(["{:.2f}".format(a) for a in predicted[0]]))
-            anomaly_detected = self.predictor.detect_anomaly(predicted, self.database.get_curr_resource().resource_data, self.curr_phase, phase_exists)
+            logging.info("Actual: " + str(["{:.2f}".format(a) for a in self.database.get_curr_resource()]) + " Predicted:" + str(["{:.2f}".format(a) for a in predicted]))
+            anomaly_detected = self.predictor.detect_anomaly(predicted, self.database.get_curr_resource(), self.curr_phase, phase_exists)
             if anomaly_detected == True:
                 handler()
             # Add profile to phase database
