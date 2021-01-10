@@ -55,3 +55,16 @@ def remove_hosts_entry(hostname, private_ip):
 
 def write_slaves_file_on_master(contents, private_ip):
     write_file_via_sftp(private_ip, "/usr/local/hadoop/etc/hadoop/slaves", contents)
+
+def run_hadoop(master_private_ip):
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect(hostname=master_private_ip, username='ubuntu', key_filename='/home/ubuntu/.ssh/id_rsa')
+
+    stdin, out, err = ssh.exec_command("/usr/local/hadoop/bin/hdfs namenode -format")
+    print(out.read().decode(), err.read().decode())
+    stdin, out, err = ssh.exec_command("/usr/local/hadoop/sbin/start-dfs.sh && /usr/local/hadoop/sbin/start-yarn.sh")
+    print(out.read().decode(), err.read().decode())
+    stdin, out, err = ssh.exec_command("/usr/local/hadoop/sbin/mr-jobhistory-daemon.sh start historyserver")
+    print(out.read().decode(), err.read().decode())
+    ssh.close()

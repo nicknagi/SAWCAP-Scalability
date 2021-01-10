@@ -2,9 +2,10 @@ import digitalocean
 import argparse
 import os
 import time
-from utils import add_hosts_entries, write_slaves_file_on_master, remove_hosts_entry
+from utils import add_hosts_entries, write_slaves_file_on_master, remove_hosts_entry, run_hadoop
 import logging
 import sys
+import multiprocessing as mp
 
 logger = logging.getLogger(__name__)
 stdout_handler = logging.StreamHandler(sys.stdout)
@@ -13,8 +14,6 @@ formatter = logging.Formatter(fmt=' %(asctime)s :: %(levelname)-8s -- %(message)
 stdout_handler.setFormatter(formatter)
 logger.addHandler(stdout_handler)
 logger.setLevel(logging.DEBUG)
-
-# TODO: Tag droplets appropriately for networking
 
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument("-n", "--numworkers", type=int,
@@ -40,6 +39,8 @@ runner_name = "runner-" + name_suffix
 worker_names = [f"hadoop-worker-{name_suffix}-{x:02d}" for x in range(1, num_workers+1)]
 manager = digitalocean.Manager(token=token)
 keys = manager.get_all_sshkeys()
+
+# -----------------------------  Utility Functions ---------------------------------------------
 
 def create_droplet(name, image, size):
     droplet = digitalocean.Droplet(token=token,
@@ -83,6 +84,10 @@ logger.info("Starting to wait for master to spin up")
 wait_until_droplet_up(master_droplet)
 logger.info("Master has been spun up")
 
+# Add tag to master
+tag = digitalocean.Tag(token=token, name="hadoop-debug")
+tag.add_droplets([master_droplet.id])
+
 # Refresh data about droplets
 master_droplet.load()
 
@@ -115,7 +120,11 @@ logger.info("Modified master slaves file")
 def setup_worker(worker_droplet):
     logger.info("Starting to wait for workers to spin up")
     wait_until_droplet_up(worker_droplet)
-    logger.info("Worker has been spun up")
+    logger.info(f"Worker {worker_droplet.name} has been spun up")
+
+    # Add tag to workers
+    tag = digitalocean.Tag(token=token, name="hadoop-debug")
+    tag.add_droplets([worker_droplet.id])
     
     # Refresh worker droplet data
     worker_droplet.load()
@@ -127,5 +136,15 @@ def setup_worker(worker_droplet):
     logger.info(f"Modified {worker_droplet.name} /etc/hosts")
 
 # Setup all workers
-for worker_droplet in worker_droplets:
-    setup_worker(worker_droplet)
+with mp.Pool(4) as pool:
+    pool.map(setup_worker, worker_droplets)
+
+# ---------------------------- Run Hadoop ---------------------------------------------------
+
+# Start hadoop processes
+logger.info(f"Starting Hadoop")
+run_hadoop(master_droplet.private_ip_address)
+logger.info(f"Hadoop Started")
+
+# ---------------------------- Setup Runner ---------------------------------------------------
+# TODO:  setup runner, pull github and change branch
