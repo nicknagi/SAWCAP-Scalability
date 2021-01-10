@@ -23,6 +23,7 @@ from entities.snapshot import Snapshot
 import pickle
 import sys
 import os
+import logging
 
 class Database:
     def __init__(self):
@@ -74,12 +75,19 @@ class Database:
         return self._database["triplets"][0].resource_data
 
     def save_database(self, datadir, algo):
-        with open(f"{datadir}/phase_db_{algo}", 'wb') as f:
-            pickle.dump(self._database, f)
+        try:
+            with open(f"{datadir}/phase_db_{algo}", 'wb') as f:
+                pickle.dump(self._database, f)
+                logging.info("SAVED")
+        except:
+            logging.error("Error occured while saving the database")
 
     def load_database(self, datadir, algo):
         # load the the phase database if exists
-        if os.path.isfile(f"{datadir}/phase_db_{algo}"):
-            with open(f"{datadir}/phase_db_{algo}", 'rb') as f:
-                self._database = pickle.load(f)
-    
+        try:
+            if os.path.isfile(f"{datadir}/phase_db_{algo}"):
+                with open(f"{datadir}/phase_db_{algo}", 'rb') as f:
+                    self._database = pickle.load(f)
+                logging.info("LOADED")
+        except:
+            logging.error("Error occured while loading the database")
