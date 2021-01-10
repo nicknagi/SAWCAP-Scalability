@@ -2,6 +2,7 @@ from sklearn import linear_model
 import numpy as np
 from config import BATCH_SIZE, NUM_RESOURCES
 from utils import MAPE
+import logging
 
 class Predictor:
 
@@ -55,23 +56,28 @@ class Predictor:
         if phase_exists == False:
             # use simple heuristic of low CPU utilization for unseen phases
             if curr_resources[0] < 10:
+                logging.debug("Increasing anomaly confidence")
                 anomaly_confidence_state += 1
             else:
+                logging.debug("Decreasing anomaly confidence")
                 anomaly_confidence_state -= 1
         else:
             # seen this phase before
             error = MAPE(predicted, curr_resources)
+            logging.debug("Current MAPE error is is " + str(error))
             if error > 50:
+                logging.debug("Increasing anomaly confidence")
                 anomaly_confidence_state += 1
             else:
+                logging.debug("Decreasing anomaly confidence")
                 anomaly_confidence_state -= 1
         self.anomaly_confidence_state = anomaly_confidence_state
-
+        logging.debug("Current anomaly confidence state is " + str(self.anomaly_confidence_state))
         if self.anomaly_confidence_state > 5:
-            print("Anomaly Detected.")
+            logging.critical("Anomaly Detected.")
             print(cur_phase)
             return True
-        print("No Anomaly Detected.")
+        logging.info("No Anomaly Detected.")
         return False
 
     def _get_triplet_values(self):
