@@ -38,7 +38,7 @@ print_error () {
 
 # param1: PID of python process
 print_stop_sawcap () {
-    echo -e "${ORANGE}\n[I] Sending SIGINT to process $1 ${NC} \n"
+    echo -e "${ORANGE}\n[I] Sending SIGTERM to process $1 ${NC} \n"
 }
 
 # prepare workload once
