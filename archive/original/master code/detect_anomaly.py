@@ -57,13 +57,15 @@ actual_resources = []
 # flag to record accuracy. Turn off when benchmarking to prevent memory overhead. Default to False
 get_accuracy = False
 
-def export_stats(acc_cpu, acc_mem):
+def export_stats(acc_cpu, acc_mem, anomaly_detected=False):
     file_path = DATA_DIR + STATS_FILE
 
     f = open(file_path, "a")
     f.write("\n### Accuracy Rates ###\n")
     f.write(f'CPU Prediction Accuracy: {acc_cpu:.3f}\n')
     f.write(f'MEM Prediction Accuracy: {acc_mem:.3f}\n')
+    if anomaly_detected:
+        f.write("Anomaly Detected\n")
     f.close()
 
 # Exit after catching a Keyboard Interrupt
@@ -113,7 +115,7 @@ def print_and_exit(code):
         acc_mem = 100 - SMAPE(actual_resources_mem, predicted_resources_mem)
         print('MEM Prediction Accuracy: %.3f %%' % (acc_mem))
 
-        export_stats(acc_cpu, acc_mem)
+        export_stats(acc_cpu, acc_mem, anomaly_detected=True)
 
     sys.exit(code)
 
