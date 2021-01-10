@@ -10,7 +10,7 @@ from time import sleep
 from characterizer.characterizer import Characterizer
 from config import INTERVAL, WORKERS, LOG_LEVEL, ENABLE_STATS, DATA_DIR, STATS_FILE
 import logging
-from signal import signal, SIGINT
+from signal import signal, SIGINT, SIGTERM
 
 import numpy as np
 import sys
@@ -37,7 +37,7 @@ class Sawcap:
 
         # for graceful exit
         signal(SIGINT, self.sawcap_exit)
-
+        signal(SIGTERM, self.handler)
 
     def run(self):
         while True:
@@ -79,12 +79,28 @@ class Sawcap:
         self.database.add_new_snapshot(snapshot)
 
     # Exit after catching a Keyboard Interrupt
-    
+	    
+    def sawcap_exit(self, signal_received = None, frame = None):
+        self.calculate_errors()
+        logging.info('\nExiting after saving the current database')
+        self.database.save_database()
+        sys.exit(2)
+
     def handler(signal_received, frame):
-	    export_stats()
+	    self.export_stats()
 	    sys.exit(2)
-    
-	def calculate_errors():
+	    
+   def export_stats():
+	    acc_cpu, acc_mem = self.calculate_errors()
+	    file_path = DATA_DIR + STATS_FILE
+	
+	    f = open(file_path, "a")
+	    f.write("\n### Accuracy Rates ###\n")
+	    f.write(f'CPU Prediction Accuracy: {acc_cpu:.3f}\n')
+	    f.write(f'MEM Prediction Accuracy: {acc_mem:.3f}\n')
+	    f.close()
+
+    def calculate_errors():
 	    logging.info("\n### Accuracy Rates ###")
 	
 	    actual_resources = stats["actual_data"]
@@ -103,51 +119,6 @@ class Sawcap:
 	    logging.info('MEM Prediction Accuracy: %.3f %%' % (acc_mem))
 	
 	    return acc_cpu, acc_mem
-	    
-   def export_stats():
-	    acc_cpu, acc_mem = calculate_errors()
-	    file_path = DATA_DIR + STATS_FILE
-	
-	    f = open(file_path, "a")
-	    f.write("\n### Accuracy Rates ###\n")
-	    f.write(f'CPU Prediction Accuracy: {acc_cpu:.3f}\n')
-	    f.write(f'MEM Prediction Accuracy: {acc_mem:.3f}\n')
-	    f.close()
-	    
-	def SMAPE(y_true, y_pred):
-	    y_true, y_pred = np.array(y_true), np.array(y_pred) # convert to numpy arrays
-	    return np.mean(np.abs(y_true - y_pred) / (np.abs(y_true) + np.abs(y_pred) + 1e-8)) * 100
-	    
-    def sawcap_exit(self, signal_received = None, frame = None):
-        self.calculate_errors()
-        logging.info('\nExiting after saving the current database')
-        self.database.save_database()
-        sys.exit(2)
-
-
-    def sawcap_exit(self, signal_received = None, frame = None):
-        self.calculate_errors()
-        logging.info('\nExiting after saving the current database')
-        self.database.save_database()
-        sys.exit(2)
-
-    def calculate_errors(self):
-        print("\n### Error Rates ###")
-
-        actual_resources = stats["actual_data"]
-        predicted_resources = stats["predicted_data"]
-
-        # CPU resource usage accuracy
-        actual_resources_cpu = [resource[0] for resource in actual_resources]
-        predicted_resources_cpu = [resource[0] for resource in predicted_resources]
-        e_cpu = SMAPE(actual_resources_cpu, predicted_resources_cpu)
-        logging.debug('Error CPU: %.3f %%' % (e_cpu))
-
-        # Memory usage accuracy
-        actual_resources_mem = [resource[1] for resource in actual_resources]
-        predicted_resources_mem = [resource[1] for resource in predicted_resources]
-        e_mem = SMAPE(actual_resources_mem, predicted_resources_mem)
-        logging.debug('Error MEM: %.3f %%' % (e_mem))
 
 if __name__ == "__main__":
     sawcap = Sawcap()
