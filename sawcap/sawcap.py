@@ -3,6 +3,7 @@
 from entities.database import Database
 from data_collector.collector import DataCollector
 from predictor.predictor import Predictor
+from utils import SMAPE
 from entities.snapshot import Snapshot
 from time import sleep
 from characterizer.characterizer import Characterizer
@@ -35,20 +36,27 @@ class Sawcap:
             sleep(INTERVAL)
             self._get_new_snapshot() # curr
 
+            triplets = self.database.get_triplets()
+            if len(triplets[1].stacktrace_data)==0 and len(triplets[2].stacktrace_data)==0:
+                logging.warning("There are no stacktraces in the workload, no predictions are made")
+                continue
+
             # Check which phase we are in currently
             self.curr_phase = self.characterizer.get_current_phase()
 
             # Based on the current phase make a prediction
-            predicted = self.predictor.get_prediction(self.curr_phase)
+            predicted, phase_exists = self.predictor.get_prediction(self.curr_phase)
             
             # Log data for error calculation and print predictions
             if ENABLE_STATS:
-                stats["predicted_data"].append(predicted[0])
-                stats["actual_data"].append(self.database.get_triplets()[-1].resource_data)
+                stats["predicted_data"].append(predicted)
+                stats["actual_data"].append(self.database.get_curr_resource())
                 calculate_errors()
 
-            logging.info("Actual: " + str(["{:.2f}".format(a) for a in self.database.get_curr_resource().resource_data]) + " Predicted:" + str(["{:.2f}".format(a) for a in predicted[0]]))
-            
+            logging.info("Actual: " + str(["{:.2f}".format(a) for a in self.database.get_curr_resource()]) + " Predicted:" + str(["{:.2f}".format(a) for a in predicted]))
+            anomaly_detected = self.predictor.detect_anomaly(predicted, self.database.get_curr_resource(), self.curr_phase, phase_exists)
+            if anomaly_detected == True:
+                handler()
             # Add profile to phase database
             self.characterizer.update_phase_database(self.curr_phase)
 
@@ -62,13 +70,9 @@ class Sawcap:
         self.database.add_new_snapshot(snapshot)
 
     # Exit after catching a Keyboard Interrupt
-def handler(signal_received, frame):
+def handler(signal_received = None, frame = None):
     calculate_errors()
     sys.exit(2)
-    
-def SMAPE(y_true, y_pred):
-    y_true, y_pred = np.array(y_true), np.array(y_pred) # convert to numpy arrays
-    return np.mean(np.abs(y_true - y_pred) / (np.abs(y_true) + np.abs(y_pred) + 1e-8)) * 100
 
 def calculate_errors():
     print("\n### Error Rates ###")
