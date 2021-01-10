@@ -80,17 +80,17 @@ class Sawcap:
 
     # Exit after catching a Keyboard Interrupt
 	    
-    def sawcap_exit(self, signal_received = None, frame = None):
-        self.calculate_errors()
+    def sawcap_exit(self, signal_received, frame):
+        self.export_stats()
         logging.info('\nExiting after saving the current database')
         self.database.save_database()
         sys.exit(2)
 
-    def handler(signal_received, frame):
+    def handler(self, signal_received, frame):
 	    self.export_stats()
 	    sys.exit(2)
 	    
-    def export_stats():
+    def export_stats(self):
         acc_cpu, acc_mem = self.calculate_errors()
         file_path = DATA_DIR + STATS_FILE
 
@@ -100,7 +100,7 @@ class Sawcap:
         f.write(f'MEM Prediction Accuracy: {acc_mem:.3f}\n')
         f.close()
 
-    def calculate_errors():
+    def calculate_errors(self):
 	    logging.info("\n### Accuracy Rates ###")
 	
 	    actual_resources = stats["actual_data"]
