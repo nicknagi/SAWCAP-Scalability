@@ -32,7 +32,7 @@ REGION = "tor1"
 WORKER_SNAPSHOT_ID = "76642056"
 RUNNER_SNAPSHOT_ID = "76642032"
 MASTER_SNAPSHOT_ID = "76642031"
-WOKER_SIZE = "s-1vcpu-2gb"
+WORKER_SIZE = "s-1vcpu-2gb"
 RUNNER_SIZE = "s-2vcpu-2gb"
 MASTER_SIZE = "s-2vcpu-2gb"
 
@@ -87,7 +87,7 @@ master_droplet = create_droplet(master_name, MASTER_SNAPSHOT_ID, MASTER_SIZE)
 worker_droplets = []
 for worker_name in worker_names:
     worker_droplets.append(create_droplet(
-        worker_name, WORKER_SNAPSHOT_ID, WOKER_SIZE))
+        worker_name, WORKER_SNAPSHOT_ID, WORKER_SIZE))
 
 # ---------------------------- Wait For Master To Complete ---------------------------------------------------
 
