@@ -107,3 +107,5 @@ python3 spinipcluster.py --numworkers X --uniqueid NAME
 python3 teardowncluster.py --uniqueid NAME
 ```
 --uniqueid is the identifier/name of the cluster you want to teardown
+
+digitalocean python wrapper used in scripts: https://github.com/koalalorenzo/python-digitalocean
