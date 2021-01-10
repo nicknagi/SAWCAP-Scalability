@@ -90,15 +90,15 @@ class Sawcap:
 	    self.export_stats()
 	    sys.exit(2)
 	    
-   def export_stats():
-	    acc_cpu, acc_mem = self.calculate_errors()
-	    file_path = DATA_DIR + STATS_FILE
-	
-	    f = open(file_path, "a")
-	    f.write("\n### Accuracy Rates ###\n")
-	    f.write(f'CPU Prediction Accuracy: {acc_cpu:.3f}\n')
-	    f.write(f'MEM Prediction Accuracy: {acc_mem:.3f}\n')
-	    f.close()
+    def export_stats():
+        acc_cpu, acc_mem = self.calculate_errors()
+        file_path = DATA_DIR + STATS_FILE
+
+        f = open(file_path, "a")
+        f.write("\n### Accuracy Rates ###\n")
+        f.write(f'CPU Prediction Accuracy: {acc_cpu:.3f}\n')
+        f.write(f'MEM Prediction Accuracy: {acc_mem:.3f}\n')
+        f.close()
 
     def calculate_errors():
 	    logging.info("\n### Accuracy Rates ###")

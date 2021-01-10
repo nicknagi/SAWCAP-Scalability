@@ -60,7 +60,7 @@ run_workload () {
 }
 
 run_sawcap () {
-    python3 "$code_path"
+    python3 "$code_path" &
     return $?
 }
 
