@@ -9,6 +9,8 @@ from time import sleep
 from characterizer.characterizer import Characterizer
 from config import INTERVAL, WORKERS, LOG_LEVEL, ENABLE_STATS
 import logging
+import pickle
+from signal import signal, SIGINT
 
 import numpy as np
 import sys
@@ -22,13 +24,18 @@ stats = {
     "predicted_data": []
 }
 
+algo = "lasso"
+
 class Sawcap:
     def __init__(self):
         self.database = Database()
         self.data_collector = DataCollector(WORKERS)
         self.characterizer = Characterizer(self.database)
-        self.predictor = Predictor(self.database, "lasso")
+        self.predictor = Predictor(self.database, algo)
         self.curr_phase = ""
+
+        # for graceful exit
+        signal(SIGINT, self.handler)
 
     def run(self):
         while True:
@@ -70,32 +77,28 @@ class Sawcap:
         self.database.add_new_snapshot(snapshot)
 
     # Exit after catching a Keyboard Interrupt
-def handler(signal_received = None, frame = None):
-    calculate_errors()
-    sys.exit(2)
+    def handler(signal_received = None, frame = None):
+        self.calculate_errors()
+        sys.exit(2)
 
-def calculate_errors():
-    print("\n### Error Rates ###")
+    def calculate_errors():
+        print("\n### Error Rates ###")
 
-    actual_resources = stats["actual_data"]
-    predicted_resources = stats["predicted_data"]
+        actual_resources = stats["actual_data"]
+        predicted_resources = stats["predicted_data"]
 
-    # CPU resource usage accuracy
-    actual_resources_cpu = [resource[0] for resource in actual_resources]
-    predicted_resources_cpu = [resource[0] for resource in predicted_resources]
-    e_cpu = SMAPE(actual_resources_cpu, predicted_resources_cpu)
-    logging.debug('Error CPU: %.3f %%' % (e_cpu))
+        # CPU resource usage accuracy
+        actual_resources_cpu = [resource[0] for resource in actual_resources]
+        predicted_resources_cpu = [resource[0] for resource in predicted_resources]
+        e_cpu = SMAPE(actual_resources_cpu, predicted_resources_cpu)
+        logging.debug('Error CPU: %.3f %%' % (e_cpu))
 
-    # Memory usage accuracy
-    actual_resources_mem = [resource[1] for resource in actual_resources]
-    predicted_resources_mem = [resource[1] for resource in predicted_resources]
-    e_mem = SMAPE(actual_resources_mem, predicted_resources_mem)
-    logging.debug('Error MEM: %.3f %%' % (e_mem))
+        # Memory usage accuracy
+        actual_resources_mem = [resource[1] for resource in actual_resources]
+        predicted_resources_mem = [resource[1] for resource in predicted_resources]
+        e_mem = SMAPE(actual_resources_mem, predicted_resources_mem)
+        logging.debug('Error MEM: %.3f %%' % (e_mem))
 
 if __name__ == "__main__":
-    # for graceful exit
-    from signal import signal, SIGINT
-    signal(SIGINT, handler)
-
     sawcap = Sawcap()
     sawcap.run()
