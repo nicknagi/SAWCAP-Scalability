@@ -52,3 +52,6 @@ def remove_hosts_entry(hostname, private_ip):
         if hostname_with_spaces not in line:
             new_contents.append(line)
     write_file_via_sftp(private_ip, filename, new_contents)
+
+def write_slaves_file_on_master(contents, private_ip):
+    write_file_via_sftp(private_ip, "/usr/local/hadoop/etc/hadoop/slaves", contents)

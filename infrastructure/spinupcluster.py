@@ -2,6 +2,19 @@ import digitalocean
 import argparse
 import os
 import time
+from utils import add_hosts_entries, write_slaves_file_on_master, remove_hosts_entry
+import logging
+import sys
+
+logger = logging.getLogger(__name__)
+stdout_handler = logging.StreamHandler(sys.stdout)
+formatter = logging.Formatter(fmt=' %(asctime)s :: %(levelname)-8s -- %(message)s',
+                    datefmt='%d-%b-%y %H:%M:%S')
+stdout_handler.setFormatter(formatter)
+logger.addHandler(stdout_handler)
+logger.setLevel(logging.DEBUG)
+
+# TODO: Tag droplets appropriately for networking
 
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument("-n", "--numworkers", type=int,
@@ -39,7 +52,24 @@ def create_droplet(name, image, size):
     droplet.create()
     return droplet
 
-runner_droplet = create_droplet(runner_name, RUNNER_SNAPSHOT_ID, RUNNER_SIZE)
+def wait_until_droplet_up(droplet):
+    actions = droplet.get_actions()
+    complete = False
+    while not complete:
+        time.sleep(0.5)
+        logger.debug(f"Waiting for {droplet.name} to complete")
+        complete = True
+        for action in actions:
+            action.load()
+            # Once it shows "completed", droplet is up and running
+            if action.status != "completed":
+                complete = False
+    logger.debug(f"{droplet.name} Completed")
+    time.sleep(30)
+
+# -----------------------------  Create all the droplets ---------------------------------------------
+
+# runner_droplet = create_droplet(runner_name, RUNNER_SNAPSHOT_ID, RUNNER_SIZE)     ---------- ENABLE LATER
 
 master_droplet = create_droplet(master_name, MASTER_SNAPSHOT_ID, MASTER_SIZE)
 
@@ -47,7 +77,55 @@ worker_droplets = []
 for worker_name in worker_names:
     worker_droplets.append(create_droplet(worker_name, WORKER_SNAPSHOT_ID, WOKER_SIZE))
 
+# ---------------------------- Wait For Master To Complete ---------------------------------------------------
+
+logger.info("Starting to wait for master to spin up")
+wait_until_droplet_up(master_droplet)
+logger.info("Master has been spun up")
+
+# Refresh data about droplets
+master_droplet.load()
+
+# Ensure private ip available for all workers
+done = False
+while not done:
+    done = True
+    for worker_droplet in worker_droplets:
+        worker_droplet.load()
+        if worker_droplet.private_ip_address == None:
+            done = False
+
+# ---------------------------- Modify Master Files ---------------------------------------------------
+
 worker_private_ips = [(worker_droplet.name, worker_droplet.private_ip_address) for worker_droplet in worker_droplets]
-print(worker_private_ips)
+woker_hostnames_ip_lines = [f"{entry[1]} {entry[0]}\n" for entry in worker_private_ips]
 
+lines_to_add_master = ["127.0.1.1 spark-master\n", *woker_hostnames_ip_lines]
 
+# Modify master /etc/hosts
+add_hosts_entries(lines_to_add_master, master_droplet.private_ip_address)
+logger.info("Modified master /etc/hosts")
+
+# Modify slaves file on master
+worker_private_ips = [f"{worker_droplet.private_ip_address}\n" for worker_droplet in worker_droplets]
+write_slaves_file_on_master(worker_private_ips, master_droplet.private_ip_address)
+logger.info("Modified master slaves file")
+
+# ---------------------------- Modify Worker Files ---------------------------------------------------
+def setup_worker(worker_droplet):
+    logger.info("Starting to wait for workers to spin up")
+    wait_until_droplet_up(worker_droplet)
+    logger.info("Worker has been spun up")
+    
+    # Refresh worker droplet data
+    worker_droplet.load()
+
+    # Modify worker /etc/hosts
+    remove_hosts_entry(worker_droplet.name, worker_droplet.private_ip_address)
+    lines_to_add_worker = [f"{master_droplet.private_ip_address} spark-master\n", *woker_hostnames_ip_lines]
+    add_hosts_entries(lines_to_add_worker, worker_droplet.private_ip_address)
+    logger.info(f"Modified {worker_droplet.name} /etc/hosts")
+
+# Setup all workers
+for worker_droplet in worker_droplets:
+    setup_worker(worker_droplet)
