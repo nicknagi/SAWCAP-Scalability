@@ -9,12 +9,10 @@ from time import sleep
 from characterizer.characterizer import Characterizer
 from config import INTERVAL, WORKERS, LOG_LEVEL, ENABLE_STATS
 import logging
-import pickle
 from signal import signal, SIGINT
 
 import numpy as np
 import sys
-import os
 
 logging.basicConfig(format='sawcap.py: %(asctime)s - %(message)s',
                     datefmt='%d-%b-%y %H:%M:%S', level=LOG_LEVEL)
@@ -35,13 +33,11 @@ class Sawcap:
         self.predictor = Predictor(self.database, self.algo)
         self.curr_phase = ""
 
+        logging.info("\nReloading phase DB")
+        self.database.load_database(self.datadir, self.algo)
         # for graceful exit
         signal(SIGINT, self.sawcap_exit)
-        # load the the phase database if exists
-        if os.path.isfile(f"{self.datadir}/phase_db_{self.algo}"):
-            with open(f"{self.datadir}/phase_db_{algo}", 'rb') as f:
-                self.database = pickle.load(f)
-                logging.info("Reloaded phase DB")
+
 
     def run(self):
         while True:
@@ -85,11 +81,9 @@ class Sawcap:
     # Exit after catching a Keyboard Interrupt
     def sawcap_exit(self, signal_received = None, frame = None):
         self.calculate_errors()
-
+        
         logging.info('\nExiting after saving the current database')
-        with open(f"{self.datadir}/phase_db_{algo}", 'wb') as f:
-            pickle.dump(self.database, f)
-
+        self.database.save_database(self.datadir, self.algo)
         sys.exit(2)
 
     def calculate_errors(self):
