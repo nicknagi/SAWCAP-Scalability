@@ -18,8 +18,12 @@ Structure of the database dictionary:
     }
 '''
 
-from config import NUM_RESOURCES
+from config import NUM_RESOURCES, DATA_DIR, ALGO
 from entities.snapshot import Snapshot
+import pickle
+import sys
+import os
+import logging
 
 class Database:
     def __init__(self):
@@ -69,4 +73,21 @@ class Database:
     
     def get_prev2_resource(self):
         return self._database["triplets"][0].resource_data
-    
+
+    def save_database(self):
+        try:
+            with open(f"{DATA_DIR}/2020266_phase_db_{ALGO}", 'wb') as f:
+                pickle.dump(self._database, f)
+                logging.info("SAVED")
+        except:
+            logging.error("Error occured while saving the database")
+
+    def load_database(self):
+        # load the the phase database if exists
+        try:
+            if os.path.isfile(f"{DATA_DIR}/2020266_phase_db_{ALGO}"):
+                with open(f"{DATA_DIR}/2020266_phase_db_{ALGO}", 'rb') as f:
+                    self._database = pickle.load(f)
+                logging.info("LOADED")
+        except:
+            logging.error("Error occured while loading the database")
