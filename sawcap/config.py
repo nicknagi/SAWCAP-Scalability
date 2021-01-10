@@ -8,3 +8,4 @@ DATA_DIR = "/home/ubuntu/data" # Location of folder on workers where monitor.sh 
 BATCH_SIZE = 3 # Number of profiles needed for a phase to train a model
 NUM_RESOURCES = 2 # Number of resources; Currently - cpu, mem
 ENABLE_STATS = True # Enable collection and printing of stats
+ALGO = "lasso" # Defines prediction model
