@@ -86,3 +86,26 @@ bash /home/ubuntu/capstone/scripts/stop_hadoop.sh
 > ### Error Rates ###  
 > Error CPU: 29.181 %  
 > Error MEM: 16.451 %  
+
+## Infrastructure
+There are 2 scripts in the infrastructure folder. 
+
+Both scripts should be run from the orchestrator droplet in Digital Ocean as it has access to all the droplets that the script spins up as well as the API token.
+
+### SpinUp A Cluster
+```
+python3 spinipcluster.py --numworkers X --uniqueid NAME
+```
+--numworkers is the number of workers in the hadoop cluster
+
+--uniqueid is the identifier/name of the cluster you want
+
+> Note: uniqueid is an optional parameter, if you do not specify it it uses the current time as the id
+
+### Teardown A Cluster
+```
+python3 teardowncluster.py --uniqueid NAME
+```
+--uniqueid is the identifier/name of the cluster you want to teardown
+
+digitalocean python wrapper used in scripts: https://github.com/koalalorenzo/python-digitalocean
