@@ -46,7 +46,7 @@ class Sawcap:
 
             # Based on the current phase make a prediction
             predicted, phase_exists = self.predictor.get_prediction(self.curr_phase)
-            print(predicted)
+            
             # Log data for error calculation and print predictions
             if ENABLE_STATS:
                 stats["predicted_data"].append(predicted)
