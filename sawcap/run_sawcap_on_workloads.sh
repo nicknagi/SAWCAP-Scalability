@@ -14,7 +14,7 @@ prepare_path="/micro/wordcount/prepare/prepare.sh"
 run_path="/micro/wordcount/spark/run.sh"
 data_dir="/home/ubuntu/data"
 stats_path="${data_dir}/sawcap_stats.txt"
-code_path='/home/ubuntu/capstone/archive/original/master code'
+code_path='/home/ubuntu/capstone/sawcap/sawcap.py'
 
 # number of times we run a workload
 NUM_ITER=2
@@ -60,7 +60,7 @@ run_workload () {
 }
 
 run_sawcap () {
-    python3 "$code_path"/detect_anomaly.py lasso 1 &
+    python3 "$code_path"
     return $?
 }
 
