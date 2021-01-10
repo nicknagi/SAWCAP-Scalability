@@ -14,6 +14,7 @@ from signal import signal, SIGINT
 
 import numpy as np
 import sys
+import os
 
 logging.basicConfig(format='sawcap.py: %(asctime)s - %(message)s',
                     datefmt='%d-%b-%y %H:%M:%S', level=LOG_LEVEL)
@@ -24,18 +25,23 @@ stats = {
     "predicted_data": []
 }
 
-algo = "lasso"
-
 class Sawcap:
-    def __init__(self):
+    def __init__(self, datadir, algo):
+        self.datadir = datadir
+        self.algo = algo
         self.database = Database()
         self.data_collector = DataCollector(WORKERS)
         self.characterizer = Characterizer(self.database)
-        self.predictor = Predictor(self.database, algo)
+        self.predictor = Predictor(self.database, self.algo)
         self.curr_phase = ""
 
         # for graceful exit
-        signal(SIGINT, self.handler)
+        signal(SIGINT, self.sawcap_exit)
+        # load the the phase database if exists
+        if os.path.isfile(f"{self.datadir}/phase_db_{self.algo}"):
+            with open(f"{self.datadir}/phase_db_{algo}", 'rb') as f:
+                self.database = pickle.load(f)
+                logging.info("Reloaded phase DB")
 
     def run(self):
         while True:
@@ -63,7 +69,7 @@ class Sawcap:
             logging.info("Actual: " + str(["{:.2f}".format(a) for a in self.database.get_curr_resource()]) + " Predicted:" + str(["{:.2f}".format(a) for a in predicted]))
             anomaly_detected = self.predictor.detect_anomaly(predicted, self.database.get_curr_resource(), self.curr_phase, phase_exists)
             if anomaly_detected == True:
-                self.handler()
+                self.sawcap_exit()
             # Add profile to phase database
             self.characterizer.update_phase_database(self.curr_phase)
 
@@ -77,8 +83,13 @@ class Sawcap:
         self.database.add_new_snapshot(snapshot)
 
     # Exit after catching a Keyboard Interrupt
-    def handler(self, signal_received = None, frame = None):
+    def sawcap_exit(self, signal_received = None, frame = None):
         self.calculate_errors()
+
+        logging.info('\nExiting after saving the current database')
+        with open(f"{self.datadir}/phase_db_{algo}", 'wb') as f:
+            pickle.dump(self.database, f)
+
         sys.exit(2)
 
     def calculate_errors(self):
@@ -100,5 +111,7 @@ class Sawcap:
         logging.debug('Error MEM: %.3f %%' % (e_mem))
 
 if __name__ == "__main__":
-    sawcap = Sawcap()
+    datadir = "/home/ubuntu/data"
+    algo = "lasso"
+    sawcap = Sawcap(datadir, algo)
     sawcap.run()
