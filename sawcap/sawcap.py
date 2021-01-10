@@ -58,12 +58,12 @@ class Sawcap:
             if ENABLE_STATS:
                 stats["predicted_data"].append(predicted)
                 stats["actual_data"].append(self.database.get_curr_resource())
-                calculate_errors()
+                self.calculate_errors()
 
             logging.info("Actual: " + str(["{:.2f}".format(a) for a in self.database.get_curr_resource()]) + " Predicted:" + str(["{:.2f}".format(a) for a in predicted]))
             anomaly_detected = self.predictor.detect_anomaly(predicted, self.database.get_curr_resource(), self.curr_phase, phase_exists)
             if anomaly_detected == True:
-                handler()
+                self.handler()
             # Add profile to phase database
             self.characterizer.update_phase_database(self.curr_phase)
 
@@ -77,11 +77,11 @@ class Sawcap:
         self.database.add_new_snapshot(snapshot)
 
     # Exit after catching a Keyboard Interrupt
-    def handler(signal_received = None, frame = None):
+    def handler(self, signal_received = None, frame = None):
         self.calculate_errors()
         sys.exit(2)
 
-    def calculate_errors():
+    def calculate_errors(self):
         print("\n### Error Rates ###")
 
         actual_resources = stats["actual_data"]
