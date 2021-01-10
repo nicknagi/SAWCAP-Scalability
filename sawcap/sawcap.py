@@ -1,5 +1,6 @@
 # The entrypoint for the sawcap project - this should be run on the runner i.e the node that monitors the cluster
 # monitor.sh will be run on each of the workers
+from config import ALGO
 from entities.database import Database
 from data_collector.collector import DataCollector
 from predictor.predictor import Predictor
@@ -24,17 +25,16 @@ stats = {
 }
 
 class Sawcap:
-    def __init__(self, datadir, algo):
-        self.datadir = datadir
-        self.algo = algo
+    def __init__(self):
         self.database = Database()
+        logging.info("\nReloading phase DB")
+        self.database.load_database()
+
         self.data_collector = DataCollector(WORKERS)
         self.characterizer = Characterizer(self.database)
-        self.predictor = Predictor(self.database, self.algo)
+        self.predictor = Predictor(self.database, ALGO)
         self.curr_phase = ""
 
-        logging.info("\nReloading phase DB")
-        self.database.load_database(self.datadir, self.algo)
         # for graceful exit
         signal(SIGINT, self.sawcap_exit)
 
@@ -82,7 +82,7 @@ class Sawcap:
     def sawcap_exit(self, signal_received = None, frame = None):
         self.calculate_errors()
         logging.info('\nExiting after saving the current database')
-        self.database.save_database(self.datadir, self.algo)
+        self.database.save_database()
         sys.exit(2)
 
     def calculate_errors(self):
@@ -104,7 +104,5 @@ class Sawcap:
         logging.debug('Error MEM: %.3f %%' % (e_mem))
 
 if __name__ == "__main__":
-    datadir = "/home/ubuntu/data"
-    algo = "lasso"
-    sawcap = Sawcap(datadir, algo)
+    sawcap = Sawcap()
     sawcap.run()
