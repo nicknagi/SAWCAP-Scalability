@@ -85,8 +85,8 @@ class Database:
     def load_database(self, datadir, algo):
         # load the the phase database if exists
         try:
-            if os.path.isfile(f"{datadir}/phase_db_{algo}"):
-                with open(f"{datadir}/phase_db_{algo}", 'rb') as f:
+            if os.path.isfile(f"{datadir}/2020266_phase_db_{algo}"):
+                with open(f"{datadir}/2020266_phase_db_{algo}", 'rb') as f:
                     self._database = pickle.load(f)
                 logging.info("LOADED")
         except:
