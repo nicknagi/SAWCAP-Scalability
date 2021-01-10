@@ -1,8 +1,18 @@
 import os
 import paramiko
+import logging
+import sys
 
 username = "root"
 port = 22
+
+logger = logging.getLogger(__name__)
+stdout_handler = logging.StreamHandler(sys.stdout)
+formatter = logging.Formatter(fmt="[%(asctime)s] p%(process)s {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s",
+                              datefmt='%d-%b-%y %H:%M:%S')
+stdout_handler.setFormatter(formatter)
+logger.addHandler(stdout_handler)
+logger.setLevel(logging.DEBUG)
 
 def read_file_via_sftp(private_ip, filename):
     host = private_ip
@@ -56,15 +66,61 @@ def remove_hosts_entry(hostname, private_ip):
 def write_slaves_file_on_master(contents, private_ip):
     write_file_via_sftp(private_ip, "/usr/local/hadoop/etc/hadoop/slaves", contents)
 
+def _log_ssh_output(stdout, stderr):
+    logger.debug(stdout.read().decode())
+    logger.debug(stderr.read().decode())
+
 def run_hadoop(master_private_ip):
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(hostname=master_private_ip, username='ubuntu', key_filename='/home/ubuntu/.ssh/id_rsa')
 
-    stdin, out, err = ssh.exec_command("/usr/local/hadoop/bin/hdfs namenode -format")
-    print(out.read().decode(), err.read().decode())
-    stdin, out, err = ssh.exec_command("/usr/local/hadoop/sbin/start-dfs.sh && /usr/local/hadoop/sbin/start-yarn.sh")
-    print(out.read().decode(), err.read().decode())
-    stdin, out, err = ssh.exec_command("/usr/local/hadoop/sbin/mr-jobhistory-daemon.sh start historyserver")
-    print(out.read().decode(), err.read().decode())
+    logger.debug("\n\n Output from starting Hadoop: \n")
+    _, out, err = ssh.exec_command("/usr/local/hadoop/bin/hdfs namenode -format")
+    _log_ssh_output(out, err)
+    _, out, err = ssh.exec_command("/usr/local/hadoop/sbin/start-dfs.sh && /usr/local/hadoop/sbin/start-yarn.sh")
+    _log_ssh_output(out, err)
+    _, out, err = ssh.exec_command("/usr/local/hadoop/sbin/mr-jobhistory-daemon.sh start historyserver")
+    _log_ssh_output(out, err)
+    logger.debug("\n\n")
     ssh.close()
+
+
+# Function dedicated to exporting SPARK_LOCAL_IP variable in bash rc
+def modify_bashrc_runner(runner_private_ip):
+    filename = "/home/ubuntu/.bashrc"
+    contents = read_file_via_sftp(runner_private_ip, filename)
+
+    variable = "SPARK_LOCAL_IP"
+
+    for i, line in enumerate(contents):
+        if variable in line:
+            contents[i] = f"export SPARK_LOCAL_IP={runner_private_ip}\n"
+    
+    write_file_via_sftp(runner_private_ip, filename, contents)
+
+def modify_capstone_worker_configs_runner(runner_private_ip, workers):
+    filename = "/home/ubuntu/capstone/sawcap/config.py"
+    contents = read_file_via_sftp(runner_private_ip, filename)
+
+    variable = "WORKERS "
+
+    for i, line in enumerate(contents):
+        if variable in line:
+            contents[i] = f"WORKER = {workers}\n"
+    
+    write_file_via_sftp(runner_private_ip, filename, contents)
+
+def update_capstone_repo(private_ip):
+    path = "/home/ubuntu/capstone"
+
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect(hostname=private_ip, username='ubuntu', key_filename='/home/ubuntu/.ssh/id_rsa')
+
+    logger.debug("\n Output From Updating Github Repo: \n")
+    _, out, err = ssh.exec_command(f"cd {path} && git stash && git checkout main && git pull")
+    _log_ssh_output(out, err)
+
+if __name__ == "__main__":
+    pass
