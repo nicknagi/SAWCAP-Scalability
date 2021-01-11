@@ -87,6 +87,18 @@ bash /home/ubuntu/capstone/scripts/stop_hadoop.sh
 > Error CPU: 29.181 %  
 > Error MEM: 16.451 %  
 
+## Data collection
+The data collection script does the following
+- Prepares HiBench workloads
+- Runs HiBench workloads a specified number of times
+- Runs `sawcap.py` for each workload
+
+Use the following command to start the data collection process
+```
+ bash $HOME/capstone/sawcap/run_sawcap_on_workloads.sh
+```
+The results are exported to `$HOME/data/sawcap_stats.txt`
+
 ## Infrastructure
 There are 2 scripts in the infrastructure folder. 
 
