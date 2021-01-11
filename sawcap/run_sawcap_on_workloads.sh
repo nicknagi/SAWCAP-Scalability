@@ -119,6 +119,8 @@ start_data_collection () {
             run_sawcap
             PID=$!
 
+            echo "$workload_name" >> $stats_path
+
             run_workload "$workload_dir$run_path" "$workload_name $i"
             ret_code=$?
 
