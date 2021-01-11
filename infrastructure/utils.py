@@ -107,7 +107,7 @@ def modify_capstone_worker_configs_runner(runner_private_ip, workers):
 
     for i, line in enumerate(contents):
         if variable in line:
-            contents[i] = f"WORKER = {workers}\n"
+            contents[i] = f"WORKERS = {workers}\n"
     
     write_file_via_sftp(runner_private_ip, filename, contents)
 
@@ -121,6 +121,30 @@ def update_capstone_repo(private_ip):
     logger.debug("\n Output From Updating Github Repo: \n")
     _, out, err = ssh.exec_command(f"cd {path} && git stash && git checkout main && git pull")
     _log_ssh_output(out, err)
+
+def start_monitoring(worker_private_ip, interval):
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect(hostname=worker_private_ip, username='ubuntu', key_filename='/home/ubuntu/.ssh/id_rsa')
+
+    transport = ssh.get_transport()
+    channel = transport.open_session()
+
+    logger.info(f"\n\n Starting monitoring on worker ip: {worker_private_ip} \n")
+    channel.exec_command(f"(cd /home/ubuntu/capstone/sawcap/runner && /usr/bin/bash monitor.sh {interval} > /dev/null 2>&1) &")
+
+    ssh.close()
+
+def stop_monitoring(worker_private_ip):
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect(hostname=worker_private_ip, username='ubuntu', key_filename='/home/ubuntu/.ssh/id_rsa')
+
+    logger.info(f"Stopping monitoring on worker ip: {worker_private_ip}")
+    _, out, err = ssh.exec_command('ps aux | grep "/usr/bin/bash monitor.sh 1" | awk \'{print $2}\' | xargs kill -9')
+    _log_ssh_output(out, err)
+
+    ssh.close()
 
 if __name__ == "__main__":
     pass
