@@ -10,11 +10,14 @@ NC='\033[0m' # No Color
 
 # file paths
 workload_dir="$HIBENCH_WORKLOAD_DIR"
-prepare_path="/micro/wordcount/prepare/prepare.sh"
-run_path="/micro/wordcount/spark/run.sh"
-data_dir="/home/ubuntu/data"
+data_dir="$HOME/data"
 stats_path="${data_dir}/sawcap_stats.txt"
-code_path='/home/ubuntu/capstone/sawcap/sawcap.py'
+code_path="$HOME/capstone/sawcap/sawcap.py"
+
+# workloads
+wordcount_prepare="/micro/wordcount/prepare/prepare.sh"
+wordcount_run="/micro/wordcount/spark/run.sh"
+wordcount_name="wordcount"
 
 # number of times we run a workload
 NUM_ITER=2
@@ -72,38 +75,51 @@ stop_sawcap () {
     sleep 10     # wait for process to die
 }
 
+# param1: name of workload
+# param2: path to prepare workload
+# param3: path to run workload
+start_data_collection () {
+    workload_name=$1
+    prepare_path=$2
+    run_path=$3
+
+    # prepare
+    prepare_workload "$workload_dir$prepare_path" "$workload_name"
+    ret_code=$?
+
+    if [ $ret_code -eq 0 ]
+    then
+        # prepare was successful    
+        for (( i=1; i<=$NUM_ITER; i++ ))
+        do
+            run_sawcap
+            PID=$!
+
+            run_workload "$workload_dir$run_path" "$workload_name $i"
+            ret_code=$?
+
+            # kill sawcap to export stats
+            stop_sawcap $PID
+
+            if [ $ret_code -gt 0 ]
+            then
+                print_error "HiBench workload failed"
+                exit   
+            fi
+        done
+        
+        exit
+    else
+        print_error "HiBench prepare failed"
+        exit
+    fi
+
+}
+
 # START SCRIPT
 
 # delete previously collected data
 rm -f $stats_path
 
-# prepare
-prepare_workload "$workload_dir$prepare_path" "wordcount"
-ret_code=$?
-
-if [ $ret_code -eq 0 ]
-then
-    # prepare was successful    
-    for (( i=1; i<=$NUM_ITER; i++ ))
-    do
-        run_sawcap
-        PID=$!
-
-        run_workload "$workload_dir$run_path" "wordcount $i"
-        ret_code=$?
-
-        # kill sawcap to export stats
-        stop_sawcap $PID
-
-        if [ $ret_code -gt 0 ]
-        then
-            print_error "HiBench workload failed"
-            exit   
-        fi
-    done
-    
-    exit
-else
-    print_error "HiBench prepare failed"
-    exit
-fi
+# run wordcount
+start_data_collection $wordcount_name $wordcount_prepare $wordcount_run 
