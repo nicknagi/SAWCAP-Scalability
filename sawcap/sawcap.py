@@ -37,7 +37,7 @@ class Sawcap:
 
         # for graceful exit
         signal(SIGINT, self.sawcap_exit)
-        signal(SIGTERM, self.handler)
+        signal(SIGTERM, self.sawcap_exit)
 
     def run(self):
         while True:
@@ -79,17 +79,13 @@ class Sawcap:
         self.database.add_new_snapshot(snapshot)
 
     # Exit after catching a Keyboard Interrupt
-	    
+
     def sawcap_exit(self, signal_received=None, frame=None):
         self.export_stats()
         logging.info('\nExiting after saving the current database')
         self.database.save_database()
         sys.exit(2)
 
-    def handler(self, signal_received, frame):
-	    self.export_stats()
-	    sys.exit(2)
-	    
     def export_stats(self):
         acc_cpu, acc_mem = self.calculate_errors()
         file_path = DATA_DIR + STATS_FILE
@@ -102,22 +98,22 @@ class Sawcap:
 
     def calculate_errors(self):
 	    logging.info("\n### Accuracy Rates ###")
-	
+
 	    actual_resources = stats["actual_data"]
 	    predicted_resources = stats["predicted_data"]
-	
+
 	    # CPU resource usage accuracy
 	    actual_resources_cpu = [resource[0] for resource in actual_resources]
 	    predicted_resources_cpu = [resource[0] for resource in predicted_resources]
 	    acc_cpu = 100 - SMAPE(actual_resources_cpu, predicted_resources_cpu)
 	    logging.info('CPU Prediction Accuracy: %.3f %%' % (acc_cpu))
-	
+
 	    # Memory usage accuracy
 	    actual_resources_mem = [resource[1] for resource in actual_resources]
 	    predicted_resources_mem = [resource[1] for resource in predicted_resources]
 	    acc_mem = 100 - SMAPE(actual_resources_mem, predicted_resources_mem)
 	    logging.info('MEM Prediction Accuracy: %.3f %%' % (acc_mem))
-	
+
 	    return acc_cpu, acc_mem
 
 if __name__ == "__main__":

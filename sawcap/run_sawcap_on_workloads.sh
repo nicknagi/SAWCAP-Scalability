@@ -107,6 +107,10 @@ start_data_collection () {
     prepare_path=$2
     run_path=$3
 
+    # clear hdfs to save space
+    hdfs dfs -rm -R -skipTrash "/*"
+    sleep 5
+
     # prepare
     prepare_workload "$workload_dir$prepare_path" "$workload_name"
     ret_code=$?
@@ -159,11 +163,11 @@ rm -f $stats_path
 # # run pagerank
 # start_data_collection $pagerank_name $pagerank_prepare $pagerank_run 
 
-# # run svm
-# start_data_collection $svm_name $svm_prepare $svm_run 
+# run svm
+start_data_collection $svm_name $svm_prepare $svm_run 
 
-# run wordcount
-start_data_collection $wordcount_name $wordcount_prepare $wordcount_run 
+## run wordcount
+#start_data_collection $wordcount_name $wordcount_prepare $wordcount_run 
 
 # # run rf
 # start_data_collection $rf_name $rf_prepare $rf_run 
