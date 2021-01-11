@@ -94,7 +94,7 @@ Both scripts should be run from the orchestrator droplet in Digital Ocean as it 
 
 ### SpinUp A Cluster
 ```
-python3 spinipcluster.py --numworkers X --uniqueid NAME
+python3 spinupcluster.py --numworkers X --uniqueid NAME
 ```
 --numworkers is the number of workers in the hadoop cluster
 
