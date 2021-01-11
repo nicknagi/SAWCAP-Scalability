@@ -15,9 +15,33 @@ stats_path="${data_dir}/sawcap_stats.txt"
 code_path="$HOME/capstone/sawcap/sawcap.py"
 
 # workloads
+bayes_prepare="/ml/bayes/prepare/prepare.sh"
+bayes_run="/ml/bayes/spark/run.sh"
+bayes_name="bayes"
+
+nweight_prepare="/graph/nweight/prepare/prepare.sh"
+nweight_run="/graph/nweight/spark/run.sh"
+nweight_name="nweight"
+
+kmeans_prepare="/ml/kmeans/prepare/prepare.sh"
+kmeans_run="/ml/kmeans/spark/run.sh"
+kmeans_name="kmeans"
+
+pagerank_prepare="/graph/pagerank/prepare/prepare.sh"
+pagerank_run="/graph/pagerank/spark/run.sh"
+pagerank_name="pagerank"
+
+svm_prepare="/ml/svm/prepare/prepare.sh"
+svm_run="/ml/svm/spark/run.sh"
+svm_name="svm"
+
 wordcount_prepare="/micro/wordcount/prepare/prepare.sh"
 wordcount_run="/micro/wordcount/spark/run.sh"
 wordcount_name="wordcount"
+
+rf_prepare="/ml/rf/prepare/prepare.sh"
+rf_run="/ml/rf/spark/run.sh"
+rf_name="rf"
 
 # number of times we run a workload
 NUM_ITER=2
@@ -121,5 +145,23 @@ start_data_collection () {
 # delete previously collected data
 rm -f $stats_path
 
+# # run bayes
+# start_data_collection $bayes_name $bayes_prepare $bayes_run 
+
+# # run nweight
+# start_data_collection $nweight_name $nweight_prepare $nweight_run
+
+# # run kmeans
+# start_data_collection $kmeans_name $kmeans_prepare $kmeans_run 
+
+# # run pagerank
+# start_data_collection $pagerank_name $pagerank_prepare $pagerank_run 
+
+# # run svm
+# start_data_collection $svm_name $svm_prepare $svm_run 
+
 # run wordcount
 start_data_collection $wordcount_name $wordcount_prepare $wordcount_run 
+
+# # run rf
+# start_data_collection $rf_name $rf_prepare $rf_run 
