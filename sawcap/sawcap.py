@@ -80,7 +80,7 @@ class Sawcap:
 
     # Exit after catching a Keyboard Interrupt
 	    
-    def sawcap_exit(self, signal_received, frame):
+    def sawcap_exit(self, signal_received=None, frame=None):
         self.export_stats()
         logging.info('\nExiting after saving the current database')
         self.database.save_database()
