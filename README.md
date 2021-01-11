@@ -99,6 +99,11 @@ Use the following command to start the data collection process
 ```
 The results are exported to `$HOME/data/sawcap_stats.txt`
 
+You must also run the monitor script on each slave as follows
+```
+bash $HOME/capstone/sawcap/runner/monitor.sh 1
+```
+
 ## Infrastructure
 There are 2 scripts in the infrastructure folder. 
 
