@@ -111,7 +111,7 @@ Both scripts should be run from the orchestrator droplet in Digital Ocean as it 
 
 ### SpinUp A Cluster
 ```
-python3 spinupcluster.py --numworkers X --uniqueid NAME
+python3 spinupcluster.py --numworkers X [--uniqueid NAME]
 ```
 --numworkers is the number of workers in the hadoop cluster
 
@@ -124,5 +124,15 @@ python3 spinupcluster.py --numworkers X --uniqueid NAME
 python3 teardowncluster.py --uniqueid NAME
 ```
 --uniqueid is the identifier/name of the cluster you want to teardown
+
+### Enable or Disable Monitoring
+```
+python3 monitoring.py --uniqueid NAME [--stop] [--interval X]
+```
+--uniqueid is the identifier/name of the cluster you want to enable or disable monitoring on.
+
+--stop option to indicate that monitoring should be disabled. If not provided, then monitoring is enabled.
+
+--interval argument provided to monitor.sh i.e sampling interval
 
 digitalocean python wrapper used in scripts: https://github.com/koalalorenzo/python-digitalocean
