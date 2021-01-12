@@ -138,7 +138,6 @@ start_data_collection () {
             fi
         done
         
-        exit
     else
         print_error "HiBench prepare failed"
         exit
