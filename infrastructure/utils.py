@@ -97,6 +97,8 @@ def modify_bashrc_runner(runner_private_ip):
         if variable in line:
             contents[i] = f"export SPARK_LOCAL_IP={runner_private_ip}\n"
     
+    contents.append(f"export HIBENCH_WORKLOAD_DIR=/usr/local/HiBench/bin/workloads")
+    
     write_file_via_sftp(runner_private_ip, filename, contents)
 
 def modify_capstone_worker_configs_runner(runner_private_ip, workers):
@@ -143,6 +145,25 @@ def stop_monitoring(worker_private_ip):
     logger.info(f"Stopping monitoring on worker ip: {worker_private_ip}")
     _, out, err = ssh.exec_command('ps aux | grep "/usr/bin/bash monitor.sh 1" | awk \'{print $2}\' | xargs kill -9')
     _log_ssh_output(out, err)
+
+    ssh.close()
+
+def modify_spark_conf_runner(runner_private_ip, num_workers):
+    filename = "/usr/local/HiBench/conf/spark.conf"
+    contents = read_file_via_sftp(runner_private_ip, filename)
+
+    variable = "hibench.yarn.executor.num"
+
+    for i, line in enumerate(contents):
+        if variable in line:
+            contents[i] = f"{variable}     {num_workers}\n"
+    
+    write_file_via_sftp(runner_private_ip, filename, contents)
+
+def try_ssh(droplet_private_ip):
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect(hostname=droplet_private_ip, username='ubuntu', key_filename='/home/ubuntu/.ssh/id_rsa')
 
     ssh.close()
 

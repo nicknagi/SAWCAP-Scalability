@@ -2,7 +2,8 @@ import digitalocean
 import argparse
 import os
 import time
-from utils import add_hosts_entries, write_slaves_file_on_master, remove_hosts_entry, run_hadoop, modify_bashrc_runner, modify_capstone_worker_configs_runner, update_capstone_repo
+from utils import add_hosts_entries, write_slaves_file_on_master, remove_hosts_entry, \
+ run_hadoop, modify_bashrc_runner, modify_capstone_worker_configs_runner, update_capstone_repo, modify_spark_conf_runner, try_ssh
 import logging
 import sys
 import multiprocessing as mp
@@ -58,24 +59,46 @@ def create_droplet(name, image, size):
     droplet.create()
     return droplet
 
-
-def wait_until_droplet_up(droplet):
+def droplet_ready(droplet):
     actions = droplet.get_actions()
-    complete = False
-    while not complete:
-        time.sleep(2)
+
+    for action in actions:
+        action.load()
+        # Once it shows "completed", droplet is up and running
+        if action.status != "completed":
+            return False
+
+    return True
+
+def can_ssh(droplet):
+    try:
+        try_ssh(droplet.private_ip_address)
+        return True
+    except Exception:
+        return False
+
+def wait_until_droplet_ready(droplet):
+    # Do a quick check first otherwise wait longer
+    if droplet_ready(droplet) and can_ssh(droplet):
+        return
+
+    while not droplet_ready(droplet):
         logger.debug(f"Waiting for {droplet.name} to complete")
-        complete = True
-        for action in actions:
-            action.load()
-            # Once it shows "completed", droplet is up and running
-            if action.status != "completed":
-                complete = False
+        time.sleep(2)
 
     logger.debug(f"{droplet.name} Completed")
 
-    #Wait for machine to actually boot up
-    time.sleep(30) 
+    # Load latest droplet data
+    while droplet.private_ip_address is None:
+        droplet.load()
+        time.sleep(1)
+
+    # Droplet is only ready when we can ssh, at times it can be complete but not ready
+    while not can_ssh(droplet):
+        logger.debug(f"Waiting for {droplet.name} to complete")
+        time.sleep(2)
+
+    logger.debug(f"{droplet.name} Ready!")
 
 # -----------------------------  Create all the droplets ---------------------------------------------
 
@@ -92,7 +115,7 @@ for worker_name in worker_names:
 # ---------------------------- Wait For Master To Complete ---------------------------------------------------
 
 logger.info("Starting to wait for master to spin up")
-wait_until_droplet_up(master_droplet)
+wait_until_droplet_ready(master_droplet)
 logger.info("Master has been spun up")
 
 # Add tag to master
@@ -136,7 +159,7 @@ logger.info("Modified master slaves file")
 
 def setup_worker(worker_droplet):
     logger.info("Starting to wait for workers to spin up")
-    wait_until_droplet_up(worker_droplet)
+    wait_until_droplet_ready(worker_droplet)
     logger.info(f"Worker {worker_droplet.name} has been spun up")
 
     # Add tag to workers
@@ -172,7 +195,7 @@ logger.info(f"Hadoop Started")
 # ---------------------------- Setup Runner ---------------------------------------------------
 
 logger.info("Starting to wait for runner to spin up")
-wait_until_droplet_up(runner_droplet)
+wait_until_droplet_ready(runner_droplet)
 logger.info("Runner has been spun up")
 
 # Refresh droplet data
@@ -199,6 +222,10 @@ logger.info(f"Updated runner capstone repo")
 workers = [worker_droplet.private_ip_address for worker_droplet in worker_droplets]
 modify_capstone_worker_configs_runner(runner_droplet.private_ip_address, workers)
 logger.info("Modified runner config.py")
+
+# Modify spark.conf with num_executors = num_workers
+modify_spark_conf_runner(runner_droplet.private_ip_address, len(worker_droplets))
+logger.info("Modified runner spark.conf")
 
 logger.info(f"Done setting up cluster! - hadoop ui: http://{master_droplet.ip_address}:8069")
 
