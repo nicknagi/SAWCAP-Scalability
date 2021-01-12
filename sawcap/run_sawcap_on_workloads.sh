@@ -141,7 +141,7 @@ start_data_collection () {
             then
                 print_warning "HiBench workload failed incrementing num_fails"
                 num_fails=$((num_fails+1))
-                sleep 10
+                sleep 30
                 if [ $num_fails -eq 3 ]
                 then
                     print_error "HiBench workload failed 3 times, exiting"
@@ -149,6 +149,7 @@ start_data_collection () {
                 fi
             else
                 num_fails=0
+                sleep 5
             fi
         done
         
