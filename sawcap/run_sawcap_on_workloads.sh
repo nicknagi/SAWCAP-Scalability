@@ -151,7 +151,7 @@ start_data_collection () {
 rm -f $stats_path
 
 # run bayes
-# start_data_collection $bayes_name $bayes_prepare $bayes_run 
+start_data_collection $bayes_name $bayes_prepare $bayes_run 
 
 # run nweight
 start_data_collection $nweight_name $nweight_prepare $nweight_run
