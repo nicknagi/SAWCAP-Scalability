@@ -169,5 +169,5 @@ start_data_collection $svm_name $svm_prepare $svm_run
 # run wordcount
 start_data_collection $wordcount_name $wordcount_prepare $wordcount_run 
 
-# # run rf
-# start_data_collection $rf_name $rf_prepare $rf_run 
+# run rf
+start_data_collection $rf_name $rf_prepare $rf_run 

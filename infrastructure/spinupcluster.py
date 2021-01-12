@@ -95,7 +95,7 @@ def wait_until_droplet_ready(droplet):
 
     # Droplet is only ready when we can ssh, at times it can be complete but not ready
     while not can_ssh(droplet):
-        logger.debug(f"Waiting for {droplet.name} to complete")
+        logger.debug(f"Waiting for {droplet.name} to be ready")
         time.sleep(2)
 
     logger.debug(f"{droplet.name} Ready!")
