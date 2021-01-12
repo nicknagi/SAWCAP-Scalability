@@ -65,7 +65,7 @@ print_error () {
 
 # param1: error message
 print_warning () {
-    echo -e "${ORANGE}\n[E] $1 ${NC} \n"
+    echo -e "${ORANGE}\n[I] $1 ${NC} \n"
 }
 
 # param1: PID of python process
@@ -152,7 +152,7 @@ start_data_collection () {
                 sleep 5
             fi
         done
-        
+
     else
         print_error "HiBench prepare failed"
         exit
@@ -166,7 +166,7 @@ start_data_collection () {
 rm -f $stats_path
 
 # run bayes
-start_data_collection $bayes_name $bayes_prepare $bayes_run 
+# start_data_collection $bayes_name $bayes_prepare $bayes_run 
 
 # run nweight
 start_data_collection $nweight_name $nweight_prepare $nweight_run
