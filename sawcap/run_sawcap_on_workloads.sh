@@ -63,6 +63,11 @@ print_error () {
     echo -e "${RED}\n[E] $1 ${NC} \n"
 }
 
+# param1: error message
+print_warning () {
+    echo -e "${ORANGE}\n[E] $1 ${NC} \n"
+}
+
 # param1: PID of python process
 print_stop_sawcap () {
     echo -e "${ORANGE}\n[I] Sending SIGTERM to process $1 ${NC} \n"
@@ -114,6 +119,7 @@ start_data_collection () {
     # prepare
     prepare_workload "$workload_dir$prepare_path" "$workload_name"
     ret_code=$?
+    num_fails=0
 
     if [ $ret_code -eq 0 ]
     then
@@ -133,8 +139,16 @@ start_data_collection () {
 
             if [ $ret_code -gt 0 ]
             then
-                print_error "HiBench workload failed"
-                exit   
+                print_warning "HiBench workload failed incrementing num_fails"
+                num_fails=$((num_fails+1))
+                sleep 10
+                if [ $num_fails -eq 3 ]
+                then
+                    print_error "HiBench workload failed 3 times, exiting"
+                    exit
+                fi
+            else
+                num_fails=0
             fi
         done
         
