@@ -123,15 +123,16 @@ start_data_collection () {
 
     if [ $ret_code -eq 0 ]
     then
-        # prepare was successful    
-        for (( i=1; i<=$NUM_ITER; i++ ))
+        # prepare was successful 
+	i=0
+        while [ i -le $NUM_ITER ]
         do
             run_sawcap
             PID=$!
 
             echo "$workload_name" >> $stats_path
 
-            run_workload "$workload_dir$run_path" "$workload_name $i"
+            run_workload "$workload_dir$run_path" "$workload_name $i fails: $num_fails"
             ret_code=$?
 
             # kill sawcap to export stats
@@ -149,6 +150,7 @@ start_data_collection () {
                 fi
             else
                 num_fails=0
+		i=$((i+1))
                 sleep 5
             fi
         done
