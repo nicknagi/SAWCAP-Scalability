@@ -17,7 +17,7 @@ db_path="${data_dir}/2020266_phase_db_*"
 
 original_db_path="${data_dir}/phase_db_*"
 original_stats_path="${data_dir}/original_code_stats.txt"
-original_code_path="$HOME/capstone/archive/original/master code/detect_anomaly.py lasso"
+original_code_path="$HOME/capstone/archive/original/master\ code/detect_anomaly.py lasso"
 
 # workloads
 bayes_prepare="/ml/bayes/prepare/prepare.sh"
