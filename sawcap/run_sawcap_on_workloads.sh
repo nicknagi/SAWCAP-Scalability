@@ -55,7 +55,7 @@ print_starting_prepare () {
 }
 
 print_starting_run () {
-    echo -e "${ORANGE}\n[I] ${YELLOW}Running $1 $2 ${NC} \n"
+    echo -e "${ORANGE}\n[I] ${YELLOW}Running $1 $2 $3 $4 ${NC} \n"
 }
 
 # param1: error message
@@ -135,8 +135,16 @@ start_data_collection () {
             run_workload "$workload_dir$run_path" "$workload_name $i fails: $num_fails"
             ret_code=$?
 
-            # kill sawcap to export stats
-            stop_sawcap $PID
+            # kill sawcap to export stats if pid exists, else retry workload (for example if anomaly detected sawcap pid will not exist)
+            if ps -p $PID > /dev/null
+            then
+                 stop_sawcap $PID
+            else
+                 print_warning "sawcap.py process does not exist, retrying workload"
+                 echo "sawcap problems; disregard stat $workload_name $i" >> $stats_path
+                 sleep 5
+                 continue
+            fi
 
             if [ $ret_code -gt 0 ]
             then
