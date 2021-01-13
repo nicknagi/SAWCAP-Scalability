@@ -125,7 +125,7 @@ start_data_collection () {
     then
         # prepare was successful 
 	i=0
-        while [ i -le $NUM_ITER ]
+        while [ $i -le $NUM_ITER ]
         do
             run_sawcap
             PID=$!
