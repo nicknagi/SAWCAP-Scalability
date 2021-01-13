@@ -15,6 +15,10 @@ stats_path="${data_dir}/sawcap_stats.txt"
 code_path="$HOME/capstone/sawcap/sawcap.py"
 db_path="${data_dir}/2020266_phase_db_*"
 
+original_db_path="${data_dir}/phase_db_*"
+original_stats_path"${data_dir}/original_code_stats.txt"
+original_code_path="$HOME/capstone/archive/original/master code/detect_anomaly.py"
+
 # workloads
 bayes_prepare="/ml/bayes/prepare/prepare.sh"
 bayes_run="/ml/bayes/spark/run.sh"
@@ -46,6 +50,9 @@ rf_name="rf"
 
 # number of times we run a workload
 NUM_ITER=10
+
+# Check wether to run original code
+should_run_original_code=$1
 
 # Printing
 # I: info
@@ -97,6 +104,11 @@ run_sawcap () {
     return $?
 }
 
+run_original_code () {
+    python3 "$original_code_path" &
+    return $?
+}
+
 # param1: PID of python process
 stop_sawcap () {
     KILL_PID=$1
@@ -131,6 +143,13 @@ start_data_collection () {
             run_sawcap
             PID=$!
 
+            if [ -z "${should_run_original_code}" ]
+            then
+                run_original_code
+                O_PID=$!
+                echo -e "\n $workload_name" >> $original_stats_path
+            fi
+
             echo -e "\n $workload_name" >> $stats_path
 
             run_workload "$workload_dir$run_path" "$workload_name $i fails: $num_fails"
@@ -147,6 +166,12 @@ start_data_collection () {
                  continue
             fi
 
+            # Stop the original code if running
+            if [ -z "${should_run_original_code}" ]
+            then
+                stop_sawcap $O_PID
+            fi
+
             if [ $ret_code -gt 0 ]
             then
                 print_warning "HiBench workload failed incrementing num_fails"
@@ -159,7 +184,7 @@ start_data_collection () {
                 fi
             else
                 num_fails=0
-		i=$((i+1))
+                i=$((i+1))
                 sleep 5
             fi
         done
@@ -178,6 +203,11 @@ rm -f $stats_path
 
 # delete sawcap database
 rm -f $db_path
+
+if [ -z "${should_run_original_code}" ]
+then
+    rm -f $original_db_path
+fi
 
 # run bayes
 # start_data_collection $bayes_name $bayes_prepare $bayes_run 
