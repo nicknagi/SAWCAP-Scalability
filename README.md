@@ -39,7 +39,7 @@ bash /home/ubuntu/capstone/scripts/start_hadoop.sh
 
 2. SSH into `Slave` and start the monitor script
 ```
-python3 /home/ubuntu/capstone/archive/original/slave code/monitor.py
+python3 /home/ubuntu/capstone/archive/original/slave_code/monitor.py
 ```
 
 > :warning: **Ensure the script is writing to the correct directory**: The file that it writes to should be the same file that the anomaly detection code reads from.
@@ -95,11 +95,21 @@ The data collection script does the following
 
 Use the following command to start the data collection process
 ```
- bash $HOME/capstone/sawcap/run_sawcap_on_workloads.sh
+ bash $HOME/capstone/sawcap/run_sawcap_on_workloads.sh arg1
 ```
+arg1 - if set runs the original code and the refatored code. Otherwise only the refactored code.
+
 The results are exported to `$HOME/data/sawcap_stats.txt`
 
-You must also run the monitor script on each slave as follows
+Use the following command to start the data collection process in the background (as it can take hours)
+```
+ bash $HOME/capstone/sawcap/run_workloads_in_background.sh arg1
+```
+arg1 - if set runs the original code and the refatored code. Otherwise only the refactored code.
+
+The results are exported to `$HOME/data/sawcap_stats.txt`
+
+You must also run the monitor script on each slave as follows (or see section on Enable or Disable Monitoring)
 ```
 bash $HOME/capstone/sawcap/runner/monitor.sh 1
 ```

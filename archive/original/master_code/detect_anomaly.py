@@ -10,9 +10,9 @@ import subprocess
 import logging
 
 logging.basicConfig(format='Old Code: %(asctime)s - %(message)s',
-                    datefmt='%d-%b-%y %H:%M:%S', level=logging.CRITICAL)
+                    datefmt='%d-%b-%y %H:%M:%S', level=logging.DEBUG)
 
-servers = ['192.168.0.10', '192.168.0.11', '192.168.0.12']
+servers = ['192.168.0.5', '192.168.0.6', '192.168.0.7']
 interval = 2  # interval to determine phase change
 
 # structure of phase database
@@ -513,7 +513,8 @@ def detect_anomaly(predicted, cur_resources, cur_phase, phase_status):
     # compare the predicted resource with the current resource
     # each mismatch changes a confidence
     global anom_confidence
-    print("Actual:", ["{:.2f}".format(a) for a in cur_resources], "Predicted:", ["{:.2f}".format(a) for a in predicted])
+    prediction_str = "Actual:" + str(["{:.2f}".format(a) for a in cur_resources]) + "Predicted:" + str(["{:.2f}".format(a) for a in predicted])
+    logging.info(prediction_str)
     if cur_phase == "":
         return
     if phase_status == "unseen":

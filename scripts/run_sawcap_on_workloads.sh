@@ -11,13 +11,14 @@ NC='\033[0m' # No Color
 # file paths
 workload_dir="$HIBENCH_WORKLOAD_DIR"
 data_dir="$HOME/data"
+logs_dir="$HOME/logs_data_collection"
 stats_path="${data_dir}/sawcap_stats.txt"
 code_path="$HOME/capstone/sawcap/sawcap.py"
 db_path="${data_dir}/2020266_phase_db_*"
 
 original_db_path="${data_dir}/phase_db_*"
 original_stats_path="${data_dir}/original_code_stats.txt"
-original_code_path="$HOME/capstone/archive/original/master code/detect_anomaly.py"
+original_code_path="$HOME/capstone/archive/original/master_code"
 
 # workloads
 bayes_prepare="/ml/bayes/prepare/prepare.sh"
@@ -100,12 +101,13 @@ run_workload () {
 }
 
 run_sawcap () {
-    (sleep 45 && python3 "$code_path") &
+    (sleep 45 && python3 "$code_path" &> "$logs_dir/sawcap.log") &
     return $?
 }
 
 run_original_code () {
-    (sleep 45 && python3 "$original_code_path" lasso) &
+    # HACK: cd to dir of file so that data is written in the same directory
+    (sleep 45 && cd $original_code_path && python3 "$original_code_path/detect_anomaly.py" lasso 1 &> "$logs_dir/detect_anomaly.log") &
     return $?
 }
 
@@ -113,7 +115,15 @@ run_original_code () {
 stop_sawcap () {
     KILL_PID=$1
     print_stop_sawcap $KILL_PID
-    kill -15 $KILL_PID      # SIGTERM
+    pkill --signal 15 -f "sawcap.py*"      # SIGTERM
+    sleep 10     # wait for process to die
+}
+
+# param1: PID of python process
+stop_original_code () {
+    KILL_PID=$1
+    print_stop_sawcap $KILL_PID
+    pkill --signal 15 -f "detect_anomaly.py*"      # SIGTERM
     sleep 10     # wait for process to die
 }
 
@@ -169,7 +179,7 @@ start_data_collection () {
             # Stop the original code if running
             if [ ! -z "${should_run_original_code}" ]
             then
-                stop_sawcap $O_PID
+                stop_original_code $O_PID
             fi
 
             if [ $ret_code -gt 0 ]

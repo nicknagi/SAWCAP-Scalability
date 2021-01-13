@@ -1,5 +1,5 @@
 #!/bin/bash
-code_path='/home/ubuntu/capstone/archive/original/master code'
+code_path='/home/ubuntu/capstone/archive/original/master_code'
 file_path='/home/ubuntu/data'
 calculate_error=1	# 0 or 1
 

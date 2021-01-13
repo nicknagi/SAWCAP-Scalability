@@ -1,5 +1,5 @@
 import os
-from config import DATA_DIR, NUM_RESOURCES
+from config import DATA_DIR, NUM_RESOURCES, LOCAL_DATA_DIR
 
 class DataCollector:
 
@@ -32,8 +32,8 @@ class DataCollector:
 		# returns a list containing the threaddump and resource info
 
 		# clear the prev buffer
-		os.system("> ./threaddump_agg")
-		os.system("> ./resource_agg")
+		os.system(f"> {LOCAL_DATA_DIR}/threaddump_agg")
+		os.system(f"> {LOCAL_DATA_DIR}/resource_agg")
 
 		# fetch new data
 		for s in self.workers:
@@ -42,19 +42,19 @@ class DataCollector:
 			# is simple but powerful to detect those anomalies, though the timeout value should change
 			# system to system
 			command = "timeout --foreground 2 ssh -q -t " + s + f" 'cat {DATA_DIR}/threaddump_data' " \
-										">> ./threaddump_agg"
+										f">> {LOCAL_DATA_DIR}/threaddump_agg"
 			os.system(command)
 			# accumulate resource usage
 			command = "timeout --foreground 2 ssh -q -t " + s + f" 'cat {DATA_DIR}/resource_data' " \
-										">> ./resource_agg"
+										f">> {LOCAL_DATA_DIR}/resource_agg"
 			os.system(command)
 
 		functions = []
 
-		with open("./threaddump_agg") as f:
+		with open(f"{LOCAL_DATA_DIR}/threaddump_agg") as f:
 			functions = f.readlines()
 
-		resource_agg = self._parse_resource_agg("./resource_agg")
+		resource_agg = self._parse_resource_agg(f"{LOCAL_DATA_DIR}/resource_agg")
 		functions = [i.strip() for i in functions]
 		functions = [i.split("***")[0] for i in functions]
 

@@ -45,11 +45,6 @@ class Sawcap:
             sleep(INTERVAL)
             self._get_new_snapshot() # curr
 
-            triplets = self.database.get_triplets()
-            if len(triplets[1].stacktrace_data)==0 and len(triplets[2].stacktrace_data)==0:
-                logging.warning("There are no stacktraces in the workload, no predictions are made")
-                continue
-
             # Check which phase we are in currently
             self.curr_phase = self.characterizer.get_current_phase()
 

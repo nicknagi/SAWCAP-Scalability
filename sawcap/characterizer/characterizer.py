@@ -40,6 +40,8 @@ class Characterizer:
         self._database.add_profile_to_phase(profile, phase_string)
 
     def _detect_phase_change(self, prev_snapshot, curr_snapshot):
+        if len(prev_snapshot.stacktrace_data) == 0 and len(curr_snapshot.stacktrace_data) == 0:
+            return False
         stack_sim = prev_snapshot.stacktrace_similarity(curr_snapshot)
         logging.debug(f"Stacktrace Sim: {stack_sim}")
         if stack_sim < STACK_SIM_THRESHOLD:
