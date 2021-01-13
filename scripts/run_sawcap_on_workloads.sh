@@ -52,6 +52,8 @@ rf_name="rf"
 # number of times we run a workload
 NUM_ITER=3
 
+num_loops=0
+
 # Check wether to run original code
 should_run_original_code=$1
 
@@ -101,13 +103,13 @@ run_workload () {
 }
 
 run_sawcap () {
-    (sleep 45 && python3 "$code_path" &> "$logs_dir/sawcap.log") &
+    (sleep 45 && python3 "$code_path" &> "$logs_dir/sawcap_$1.log") &
     return $?
 }
 
 run_original_code () {
     # HACK: cd to dir of file so that data is written in the same directory
-    (sleep 45 && cd $original_code_path && python3 "$original_code_path/detect_anomaly.py" lasso 1 &> "$logs_dir/detect_anomaly.log") &
+    (sleep 45 && cd $original_code_path && python3 "$original_code_path/detect_anomaly.py" lasso 1 &> "$logs_dir/detect_anomaly_$1.log") &
     return $?
 }
 
@@ -150,12 +152,13 @@ start_data_collection () {
         i=0
         while [ $i -lt $NUM_ITER ]
         do
-            run_sawcap
+            num_loops=$((num_loops+1))
+            run_sawcap $num_loops
             PID=$!
 
             if [ ! -z "${should_run_original_code}" ]
             then
-                run_original_code
+                run_original_code $num_loops
                 O_PID=$!
                 echo -e "\n$workload_name" >> $original_stats_path
             fi
