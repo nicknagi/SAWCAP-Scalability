@@ -91,13 +91,16 @@ def modify_bashrc_runner(runner_private_ip):
     filename = "/home/ubuntu/.bashrc"
     contents = read_file_via_sftp(runner_private_ip, filename)
 
-    variable = "SPARK_LOCAL_IP"
+    keyword = "SPARK_LOCAL_IP"
+    replacement = f"export SPARK_LOCAL_IP={runner_private_ip}\n"
 
-    for i, line in enumerate(contents):
-        if variable in line:
-            contents[i] = f"export SPARK_LOCAL_IP={runner_private_ip}\n"
+    contents = _find_and_replace_line(keyword, replacement, contents)
     
     contents.append(f"export HIBENCH_WORKLOAD_DIR=/usr/local/HiBench/bin/workloads")
+
+    # very hack way of getting env variables to start data collection script
+    env_copy = contents[-20:]
+    write_file_via_sftp(runner_private_ip, "/home/ubuntu/.environment_export", env_copy)
     
     write_file_via_sftp(runner_private_ip, filename, contents)
 
@@ -105,11 +108,21 @@ def modify_capstone_worker_configs_runner(runner_private_ip, workers):
     filename = "/home/ubuntu/capstone/sawcap/config.py"
     contents = read_file_via_sftp(runner_private_ip, filename)
 
-    variable = "WORKERS "
+    keyword = "WORKERS "
+    replacement = f"WORKERS = {workers}\n"
 
-    for i, line in enumerate(contents):
-        if variable in line:
-            contents[i] = f"WORKERS = {workers}\n"
+    contents = _find_and_replace_line(keyword, replacement, contents)
+    
+    write_file_via_sftp(runner_private_ip, filename, contents)
+
+def modify_capstone_original_code_slaves_runner(runner_private_ip, workers):
+    filename = "/home/ubuntu/capstone/archive/original/master_code/detect_anomaly.py"
+    contents = read_file_via_sftp(runner_private_ip, filename)
+
+    keyword = "servers = "
+    replacement = f"servers = {workers}\n"
+
+    contents = _find_and_replace_line(keyword, replacement, contents)
     
     write_file_via_sftp(runner_private_ip, filename, contents)
 
@@ -143,7 +156,7 @@ def stop_monitoring(worker_private_ip):
     ssh.connect(hostname=worker_private_ip, username='ubuntu', key_filename='/home/ubuntu/.ssh/id_rsa')
 
     logger.info(f"Stopping monitoring on worker ip: {worker_private_ip}")
-    _, out, err = ssh.exec_command('ps aux | grep "/usr/bin/bash monitor.sh 1" | awk \'{print $2}\' | xargs kill -9')
+    _, out, err = ssh.exec_command('ps aux | grep "/usr/bin/bash monitor.sh *" | awk \'{print $2}\' | xargs kill -9')
     _log_ssh_output(out, err)
 
     ssh.close()
@@ -152,13 +165,50 @@ def modify_spark_conf_runner(runner_private_ip, num_workers):
     filename = "/usr/local/HiBench/conf/spark.conf"
     contents = read_file_via_sftp(runner_private_ip, filename)
 
-    variable = "hibench.yarn.executor.num"
+    keyword = "hibench.yarn.executor.num"
+    replacement = f"{keyword}     {num_workers}\n"
 
-    for i, line in enumerate(contents):
-        if variable in line:
-            contents[i] = f"{variable}     {num_workers}\n"
+    contents = _find_and_replace_line(keyword, replacement, contents)
     
     write_file_via_sftp(runner_private_ip, filename, contents)
+
+def modify_hibench_conf_runner(runner_private_ip, workload_scale):
+    filename = "/usr/local/HiBench/conf/hibench.conf"
+    contents = read_file_via_sftp(runner_private_ip, filename)
+
+    keyword = "hibench.scale.profile"
+    replacement = f"{keyword}     {workload_scale}\n"
+
+    contents = _find_and_replace_line(keyword, replacement, contents)
+    
+    write_file_via_sftp(runner_private_ip, filename, contents)
+
+def run_data_collection(runner_private_ip):
+    logger.info(f"Starting data collection script")
+    command = ". ./.environment_export; cd /home/ubuntu/capstone/scripts; /usr/bin/bash run_workloads_in_background.sh 1"
+
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect(hostname=runner_private_ip, username='ubuntu', key_filename='/home/ubuntu/.ssh/id_rsa')
+
+    logger.info(f"Stopping monitoring on worker ip: {runner_private_ip}")
+    _, out, err = ssh.exec_command(command)
+    _log_ssh_output(out, err)
+
+    ssh.close()
+
+
+def _find_and_replace_line(search_keyword, replacement, contents):
+
+    new_contents = []
+    for line in contents:
+        if search_keyword in line:
+            new_contents.append(replacement)
+        else:
+            new_contents.append(line)
+    if new_contents == contents:
+        logger.warning(f"File already has the change for keyword: {search_keyword}")
+    return new_contents
 
 def try_ssh(droplet_private_ip):
     ssh = paramiko.SSHClient()

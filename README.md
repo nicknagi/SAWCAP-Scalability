@@ -127,6 +127,10 @@ python3 spinupcluster.py --numworkers X [--uniqueid NAME]
 
 --uniqueid is the identifier/name of the cluster you want
 
+--workload_scale (optional) - default is large. is the setting for hibench.scale.profile  in hibench.conf
+
+--start_data_collection (optional) - start the data collection script after cluster spinup
+
 > Note: uniqueid is an optional parameter, if you do not specify it it uses the current time as the id
 
 ### Teardown A Cluster
