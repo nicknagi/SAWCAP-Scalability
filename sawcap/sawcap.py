@@ -8,7 +8,7 @@ from utils import SMAPE
 from entities.snapshot import Snapshot
 from time import sleep
 from characterizer.characterizer import Characterizer
-from config import INTERVAL, WORKERS, LOG_LEVEL, ENABLE_STATS, DATA_DIR, STATS_FILE
+from config import INTERVAL, WORKERS, LOG_LEVEL, ENABLE_STATS, DATA_DIR, STATS_FILE, ANOMALY_DETECTION_ENABLED
 import logging
 from signal import signal, SIGINT, SIGTERM
 
@@ -64,7 +64,7 @@ class Sawcap:
 
             logging.info("Actual: " + str(["{:.2f}".format(a) for a in self.database.get_curr_resource()]) + " Predicted:" + str(["{:.2f}".format(a) for a in predicted]))
             anomaly_detected = self.predictor.detect_anomaly(predicted, self.database.get_curr_resource(), self.curr_phase, phase_exists)
-            if anomaly_detected == True:
+            if anomaly_detected and ANOMALY_DETECTION_ENABLED:
                 self.sawcap_exit()
             # Add profile to phase database
             self.characterizer.update_phase_database(self.curr_phase)

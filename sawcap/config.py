@@ -1,6 +1,6 @@
 import logging
 
-WORKERS = ['172.31.15.58', '172.31.1.111'] # List of ip addresses of the workers in the cluster 
+WORKERS = ['192.168.0.5', '192.168.0.6', '192.168.0.7']
 INTERVAL = 2 # Time in seconds to wait to detect phase change
 LOG_LEVEL = logging.CRITICAL # Log level for application
 STACK_SIM_THRESHOLD = 0.6 # Stacktrace similarity threshold to determine phase change
@@ -10,3 +10,4 @@ BATCH_SIZE = 3 # Number of profiles needed for a phase to train a model
 NUM_RESOURCES = 2 # Number of resources; Currently - cpu, mem
 ENABLE_STATS = True # Enable collection and printing of stats
 ALGO = "lasso" # Defines prediction model
+ANOMALY_DETECTION_ENABLED = True
