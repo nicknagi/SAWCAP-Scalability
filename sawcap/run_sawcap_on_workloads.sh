@@ -49,7 +49,7 @@ rf_run="/ml/rf/spark/run.sh"
 rf_name="rf"
 
 # number of times we run a workload
-NUM_ITER=10
+NUM_ITER=3
 
 # Check wether to run original code
 should_run_original_code=$1
@@ -143,14 +143,14 @@ start_data_collection () {
             run_sawcap
             PID=$!
 
-            if [ -z "${should_run_original_code}" ]
+            if [ ! -z "${should_run_original_code}" ]
             then
                 run_original_code
                 O_PID=$!
-                echo -e "\n $workload_name" >> $original_stats_path
+                echo -e "\n$workload_name" >> $original_stats_path
             fi
 
-            echo -e "\n $workload_name" >> $stats_path
+            echo -e "\n$workload_name" >> $stats_path
 
             run_workload "$workload_dir$run_path" "$workload_name $i fails: $num_fails"
             ret_code=$?
@@ -167,7 +167,7 @@ start_data_collection () {
             fi
 
             # Stop the original code if running
-            if [ -z "${should_run_original_code}" ]
+            if [ ! -z "${should_run_original_code}" ]
             then
                 stop_sawcap $O_PID
             fi
@@ -204,7 +204,7 @@ rm -f $stats_path
 # delete sawcap database
 rm -f $db_path
 
-if [ -z "${should_run_original_code}" ]
+if [ ! -z "${should_run_original_code}" ]
 then
     rm -f $original_db_path
 fi
