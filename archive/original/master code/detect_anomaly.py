@@ -47,7 +47,7 @@ prev1_resource = []
 prev2_resource = []
 
 DATA_DIR = "/home/ubuntu/data"
-STATS_FILE = "/sawcap_stats.txt"
+STATS_FILE = "/original_code_stats.txt"
 
 cur_phase = ""
 
