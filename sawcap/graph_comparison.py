@@ -1,7 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-import pandasas pd
+import pandas as pd
+import argparse
 
 def parse_stats_file(file, stat_names):
   workload_dictionary = {}
@@ -68,13 +69,11 @@ def plot_data(array_of_stats_for_algos, stat_names, algos, save_path):
     plt.ylim(0,100)
 
     if save_path != None:
-      save_path = os.path.join(save_path, stat_name + '_'.join(algos) + '.png')
-      plt.savefig(save_path)
-      plt.close(fig)
+      temp_save_path = os.path.join(save_path, stat_name + '_'.join(algos) + '.png')
+      plt.savefig(temp_save_path)
+      plt.close()
     else:
       plt.show()
-
-plot_data([averages], stat_names, ["lasso"], None)
 
 if __name__ == '__main__':
 
@@ -86,13 +85,13 @@ if __name__ == '__main__':
     parser.add_argument('--save_path', help='Save path for graphs')
     args = parser.parse_args()
     
-    os.chdir(dir_name)
+    os.chdir(args.dir_name)
     stat_names = args.stats.split(',')
-    stat_files = args.stat_files(',')
-    algos = args.algos(',')
+    stat_files = args.stat_files.split(',')
+    algos = args.algos.split(',')
     array_of_stats_for_algos = []
     for file in stat_files:
-	workload_dictionary, num_workloads = parse_stats_file(file, stat_names)
-	averages = find_averages_per_workload_type(workload_dictionary, num_workloads, stat_names)
-	array_of_stats_for_algos .append(averages)
-    plot_data(array_of_stats_for_algos, stat_names, algos, save_path)
+      workload_dictionary, num_workloads = parse_stats_file(file, stat_names)
+      averages = find_averages_per_workload_type(workload_dictionary, num_workloads, stat_names)
+      array_of_stats_for_algos .append(averages)
+    plot_data(array_of_stats_for_algos, stat_names, algos, args.save_path)
