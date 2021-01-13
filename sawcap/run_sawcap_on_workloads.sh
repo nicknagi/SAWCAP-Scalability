@@ -13,6 +13,7 @@ workload_dir="$HIBENCH_WORKLOAD_DIR"
 data_dir="$HOME/data"
 stats_path="${data_dir}/sawcap_stats.txt"
 code_path="$HOME/capstone/sawcap/sawcap.py"
+db_path="${data_dir}/2020266_phase_db_*"
 
 # workloads
 bayes_prepare="/ml/bayes/prepare/prepare.sh"
@@ -174,6 +175,9 @@ start_data_collection () {
 
 # delete previously collected data
 rm -f $stats_path
+
+# delete sawcap database
+rm -f $db_path
 
 # run bayes
 # start_data_collection $bayes_name $bayes_prepare $bayes_run 
