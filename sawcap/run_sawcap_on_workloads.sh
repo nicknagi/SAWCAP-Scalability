@@ -138,7 +138,7 @@ start_data_collection () {
     then
         # prepare was successful 
         i=0
-        while [ $i -le $NUM_ITER ]
+        while [ $i -lt $NUM_ITER ]
         do
             run_sawcap
             PID=$!
@@ -161,7 +161,7 @@ start_data_collection () {
                  stop_sawcap $PID
             else
                  print_warning "sawcap.py process does not exist, retrying workload"
-                 echo "sawcap problems; disregard stat $workload_name $i" >> $stats_path
+                 echo "sawcap failure; disregard stat $workload_name $i" >> $stats_path
                  sleep 5
                  continue
             fi
@@ -175,6 +175,7 @@ start_data_collection () {
             if [ $ret_code -gt 0 ]
             then
                 print_warning "HiBench workload failed incrementing num_fails"
+                echo "workload failure; disregard stat $workload_name $i" >> $stats_path
                 num_fails=$((num_fails+1))
                 sleep 30
                 if [ $num_fails -eq 3 ]
