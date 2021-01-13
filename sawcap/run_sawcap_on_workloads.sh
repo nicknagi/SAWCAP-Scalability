@@ -17,7 +17,7 @@ db_path="${data_dir}/2020266_phase_db_*"
 
 original_db_path="${data_dir}/phase_db_*"
 original_stats_path="${data_dir}/original_code_stats.txt"
-original_code_path="$HOME/capstone/archive/original/master\ code/detect_anomaly.py"
+original_code_path="$HOME/capstone/archive/original/master code/detect_anomaly.py"
 
 # workloads
 bayes_prepare="/ml/bayes/prepare/prepare.sh"
@@ -100,12 +100,12 @@ run_workload () {
 }
 
 run_sawcap () {
-    python3 "$code_path" &
+    (sleep 45 && python3 "$code_path") &
     return $?
 }
 
 run_original_code () {
-    python3 "$original_code_path" lasso &
+    (sleep 45 && python3 "$original_code_path" lasso) &
     return $?
 }
 
@@ -207,6 +207,7 @@ rm -f $db_path
 
 if [ ! -z "${should_run_original_code}" ]
 then
+    rm -f $original_stats_path
     rm -f $original_db_path
 fi
 
