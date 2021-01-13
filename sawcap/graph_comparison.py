@@ -69,7 +69,7 @@ def plot_data(array_of_stats_for_algos, stat_names, algos, save_path):
     plt.ylim(0,100)
 
     if save_path != None:
-      temp_save_path = os.path.join(save_path, stat_name + '_'.join(algos) + '.png')
+      temp_save_path = save_path + stat_name + '_'.join(algos) + '.png'
       plt.savefig(temp_save_path)
       plt.close()
     else:
@@ -77,7 +77,7 @@ def plot_data(array_of_stats_for_algos, stat_names, algos, save_path):
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description='Plot Stats')
+    parser = argparse.ArgumentParser(description='Plot Stats. Usage example: python graph_comparison.py --dir_name ~/Desktop/capstone/sawcap --stats CPU,MEM --stat_files sawcap_stats.txt --algos lasso --save_path ~/Desktop/capstone/sawcap/my_unique_id_')
     parser.add_argument('--dir_name', required=True, help='Directory name with all files')
     parser.add_argument('--stats', required=True, help='List of stats to compare, separated by a comma without space')
     parser.add_argument('--stat_files', required=True, help='List of data files to compare, separated by a comma without space')
