@@ -185,13 +185,13 @@ def modify_hibench_conf_runner(runner_private_ip, workload_scale):
 
 def run_data_collection(runner_private_ip):
     logger.info(f"Starting data collection script")
-    command = ". ./.environment_export; cd /home/ubuntu/capstone/scripts; /usr/bin/bash run_workloads_in_background.sh 1"
+    command = "(. ./.environment_export; cd /home/ubuntu/capstone/scripts; /usr/bin/bash run_workloads_in_background.sh 1 > /dev/null 2>&1) &"
 
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(hostname=runner_private_ip, username='ubuntu', key_filename='/home/ubuntu/.ssh/id_rsa')
 
-    logger.info(f"Stopping monitoring on worker ip: {runner_private_ip}")
+    logger.info(f"Starting data collection on runner: {runner_private_ip}")
     _, out, err = ssh.exec_command(command)
     _log_ssh_output(out, err)
 
