@@ -12,7 +12,7 @@ import logging
 logging.basicConfig(format='Old Code: %(asctime)s - %(message)s',
                     datefmt='%d-%b-%y %H:%M:%S', level=logging.CRITICAL)
 
-servers = ['172.31.15.58', '172.31.1.111']
+servers = ['192.168.0.10', '192.168.0.11', '192.168.0.12']
 interval = 2  # interval to determine phase change
 
 # structure of phase database
@@ -216,7 +216,7 @@ def parse_resource_agg(file):
 
     # Timeout heuristics
     if len(lines) != len(servers):
-        print("Anomaly Detected.  The following is the stacktrace ")
+        print("Anomaly Detected.  The following is the stacktrace in parse_resource_agg ")
         with open(f"{DATA_DIR}/phase_db_{algo}", 'wb') as f:
             pickle.dump(phase_database, f)
         print_and_exit(0)
@@ -240,7 +240,7 @@ def read_remote_profile(server):
             for line in ssh.stdout:
                 # timeout heuristics
                 if(len(line) == 0):
-                    print("Anomaly Detected.  The following is the stacktrace ")
+                    print("Anomaly Detected.  The following is the stacktrace in read_remote_profile1 ")
                     print(cur_phase)
                     print_and_exit(0)
                 f.write(line)
@@ -252,7 +252,7 @@ def read_remote_profile(server):
             for line in ssh.stdout:
                 # print("Read ", line)
                 if(len(line) == 0):
-                    print("Anomaly Detected.  The following is the stacktrace ")
+                    print("Anomaly Detected.  The following is the stacktrace in read_remote_profile2 ")
                     print(cur_phase)
                     print_and_exit(0)
                 f.write(line)
@@ -531,7 +531,7 @@ def detect_anomaly(predicted, cur_resources, cur_phase, phase_status):
             anom_confidence = anom_confidence - 1
 
     if anom_confidence > 5:
-        print("Anomaly Detected.  The following is the stacktrace ")
+        print("Anomaly Detected.  The following is the stacktrace in detect_anomaly ")
         print(cur_phase)
         with open(f"{DATA_DIR}/phase_db_" + algo, 'wb') as f:
             pickle.dump(phase_database, f)
