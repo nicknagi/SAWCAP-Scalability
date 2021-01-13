@@ -137,7 +137,7 @@ start_data_collection () {
     if [ $ret_code -eq 0 ]
     then
         # prepare was successful 
-	i=0
+        i=0
         while [ $i -le $NUM_ITER ]
         do
             run_sawcap
