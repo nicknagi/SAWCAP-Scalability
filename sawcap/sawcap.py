@@ -63,9 +63,12 @@ class Sawcap:
                 self.calculate_errors()
 
             logging.info("Actual: " + str(["{:.2f}".format(a) for a in self.database.get_curr_resource()]) + " Predicted:" + str(["{:.2f}".format(a) for a in predicted]))
-            anomaly_detected = self.predictor.detect_anomaly(predicted, self.database.get_curr_resource(), self.curr_phase, phase_exists)
-            if anomaly_detected and ANOMALY_DETECTION_ENABLED:
-                self.sawcap_exit()
+
+            if ANOMALY_DETECTION_ENABLED:
+                anomaly_detected = self.predictor.detect_anomaly(predicted, self.database.get_curr_resource(), self.curr_phase, phase_exists)
+                if anomaly_detected:
+                    self.sawcap_exit()
+
             # Add profile to phase database
             self.characterizer.update_phase_database(self.curr_phase)
 
