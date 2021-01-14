@@ -18,7 +18,8 @@ def send_slack_message(text, files):
             print(f"Got an error: {e.response['error']}")
     if files != None:
         for one_file in files:
-            print(one_file)
+            if one_file == '':
+                continue
             try:
                 client.files_upload(channels='#data-collection-notifications', file=os.path.expanduser(one_file))
             except SlackApiError as e:

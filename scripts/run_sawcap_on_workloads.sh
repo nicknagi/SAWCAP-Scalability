@@ -251,12 +251,14 @@ original_code_stats_file=''
 if [ ! -z "${should_run_original_code}" ]
 then
     original_code_stats_file=',original_stats_stats.txt'
+    original_code_model=',lasso_old'
 fi
 
 # Create graphs and compile stats and send to slack
 mkdir -p $data_dir/compiled_stats
-python3 $sawcap_dir/graph_comparison.py --dir_name $data_dir --stats CPU,MEM --stats_file sawcap_stats.txt$original_code_stats_file --algos lasso --save_path $data_dir/compiled_stats && \
+pip3 install -r "$sawcap_dir/requirements.txt"
+python3 "$sawcap_dir/graph_comparison.py" --dir_name $data_dir --stats CPU,MEM --stat_file sawcap_stats.txt$original_code_stats_file --algos lasso_new$original_code_model --save_path $data_dir/compiled_stats/ && \
 comma_seperated_files=$(find $data_dir/compiled_stats -maxdepth 1 -type f | tr '\n' ',') && \
-python3 $sawcap_dir/slack_messaging_system.py --text $hostname --files $comma_seperated_files
+python3 "$sawcap_dir/slack_messaging_system.py" --text $(hostname) --files $comma_seperated_files
 
 echo "DONE!"
