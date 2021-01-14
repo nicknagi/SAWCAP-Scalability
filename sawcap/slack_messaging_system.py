@@ -37,7 +37,7 @@ def send_slack_message(text, textpath, textfiles, pngpath, pngfiles):
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description='Emailing recepients')
+    parser = argparse.ArgumentParser(description='Slacking channel')
     parser.add_argument('--text', help='Text')
     parser.add_argument('--text_dir_name', help='Directory name with all text files')
     parser.add_argument('--text_files', help='Text files paths to be sent. Commas, no space')
