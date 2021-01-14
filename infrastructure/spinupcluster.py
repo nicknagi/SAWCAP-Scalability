@@ -4,7 +4,7 @@ import os
 import time
 from utils import add_hosts_entries, write_slaves_file_on_master, remove_hosts_entry, \
  run_hadoop, modify_bashrc_runner, modify_capstone_worker_configs_runner, update_capstone_repo, modify_spark_conf_runner, try_ssh, \
-     modify_capstone_original_code_slaves_runner, modify_hibench_conf_runner, run_data_collection, start_monitoring
+     modify_capstone_original_code_slaves_runner, modify_hibench_conf_runner, run_data_collection, start_monitoring, modify_num_iters_runner
 import logging
 import sys
 import multiprocessing as mp
@@ -27,7 +27,7 @@ parser.add_argument("--uniqueid", type=str,
                     help="id of the cluster used as suffix")
 parser.add_argument("--workload_scale", type=str,
                     help="param to be set for workload size in hibench.conf", default="large")
-parser.add_argument("--start_data_collection", help="start data collection script on cluster, also starts monitoring", action="store_true")
+parser.add_argument("--start_data_collection", help="start data collection script on cluster, also starts monitoring", type=str, default="10")
 args = parser.parse_args()
 
 num_workers = args.numworkers
@@ -234,13 +234,15 @@ modify_hibench_conf_runner(runner_droplet.private_ip_address, args.workload_scal
 logger.info("Modified runner spark.conf and hibench.conf")
 
 # Start data collection script
-if args.start_data_collection:
+if args.start_data_collection is not None:
     for worker_droplet in worker_droplets:
         start_monitoring(worker_droplet.private_ip_address, 1)
 
     time.sleep(5)
 
+    modify_num_iters_runner(runner_droplet.private_ip_address, args.start_data_collection)
     run_data_collection(runner_droplet.private_ip_address)
+
 
 logger.info(f"Done setting up cluster! - hadoop ui: http://{master_droplet.ip_address}:8069")
 

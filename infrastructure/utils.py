@@ -183,6 +183,17 @@ def modify_hibench_conf_runner(runner_private_ip, workload_scale):
     
     write_file_via_sftp(runner_private_ip, filename, contents)
 
+def modify_num_iters_runner(runner_private_ip, num_iter):
+    filename = "/home/ubuntu/capstone/scripts/run_sawcap_on_workloads.sh"
+    contents = read_file_via_sftp(runner_private_ip, filename)
+
+    keyword = "NUM_ITERS="
+    replacement = f"{keyword}{num_iter}\n"
+
+    contents = _find_and_replace_line(keyword, replacement, contents)
+    
+    write_file_via_sftp(runner_private_ip, filename, contents)
+
 def run_data_collection(runner_private_ip):
     logger.info(f"Starting data collection script")
     command = "(. ./.environment_export; cd /home/ubuntu/capstone/scripts; /usr/bin/bash run_workloads_in_background.sh 1 > /dev/null 2>&1) &"
@@ -199,7 +210,6 @@ def run_data_collection(runner_private_ip):
 
 
 def _find_and_replace_line(search_keyword, replacement, contents):
-
     new_contents = []
     for line in contents:
         if search_keyword in line:
