@@ -28,7 +28,6 @@ def send_slack_message(text, files):
                 print(f"Got an error: {e.response['error']}")
 
 if __name__ == '__main__':
-
     parser = argparse.ArgumentParser(description='Slacking channel')
     parser.add_argument('--text', help='Text')
     parser.add_argument('--files', help='List of file path of files to be sent. Commas, no space')
