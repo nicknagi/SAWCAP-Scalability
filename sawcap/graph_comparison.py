@@ -59,6 +59,7 @@ def plot_data(array_of_stats_for_algos, stat_names, algos, save_path):
   for stat_name in stat_names:
     stat_frame = pd.DataFrame(merged_stats[stat_name]).T
     stat_frame.columns = algos
+    print(stat_frame)
     stat_frame.plot(kind="bar")
     # Add title and axis names
     plt.title(stat_name)
