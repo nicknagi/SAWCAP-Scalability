@@ -59,7 +59,6 @@ def plot_data(array_of_stats_for_algos, stat_names, algos, save_path):
   for stat_name in stat_names:
     stat_frame = pd.DataFrame(merged_stats[stat_name]).T
     stat_frame.columns = algos
-    print(stat_frame)
     stat_frame.plot(kind="bar")
     # Add title and axis names
     plt.title(stat_name)
@@ -70,10 +69,12 @@ def plot_data(array_of_stats_for_algos, stat_names, algos, save_path):
     plt.ylim(0,100)
 
     if save_path != None:
+      stat_frame.to_csv(save_path + stat_name + '_'.join(algos) + '.csv')
       temp_save_path = save_path + stat_name + '_'.join(algos) + '.png'
       plt.savefig(temp_save_path)
       plt.close()
     else:
+      print(stat_frame)
       plt.show()
 
 if __name__ == '__main__':
