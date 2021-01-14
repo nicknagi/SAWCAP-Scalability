@@ -250,7 +250,7 @@ start_data_collection $rf_name $rf_prepare $rf_run
 original_code_stats_file=''
 if [ ! -z "${should_run_original_code}" ]
 then
-    original_code_stats_file=',original_stats_stats.txt'
+    original_code_stats_file=',original_code_stats.txt'
     original_code_model=',lasso_old'
 fi
 
