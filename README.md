@@ -39,7 +39,7 @@ bash /home/ubuntu/capstone/scripts/start_hadoop.sh
 
 2. SSH into `Slave` and start the monitor script
 ```
-python3 /home/ubuntu/capstone/archive/original/slave code/monitor.py
+python3 /home/ubuntu/capstone/archive/original/slave_code/monitor.py
 ```
 
 > :warning: **Ensure the script is writing to the correct directory**: The file that it writes to should be the same file that the anomaly detection code reads from.
@@ -95,11 +95,21 @@ The data collection script does the following
 
 Use the following command to start the data collection process
 ```
- bash $HOME/capstone/sawcap/run_sawcap_on_workloads.sh
+ bash $HOME/capstone/sawcap/run_sawcap_on_workloads.sh arg1
 ```
+arg1 - if set runs the original code and the refatored code. Otherwise only the refactored code.
+
 The results are exported to `$HOME/data/sawcap_stats.txt`
 
-You must also run the monitor script on each slave as follows
+Use the following command to start the data collection process in the background (as it can take hours)
+```
+ bash $HOME/capstone/sawcap/run_workloads_in_background.sh arg1
+```
+arg1 - if set runs the original code and the refatored code. Otherwise only the refactored code.
+
+The results are exported to `$HOME/data/sawcap_stats.txt`
+
+You must also run the monitor script on each slave as follows (or see section on Enable or Disable Monitoring)
 ```
 bash $HOME/capstone/sawcap/runner/monitor.sh 1
 ```
@@ -116,6 +126,10 @@ python3 spinupcluster.py --numworkers X [--uniqueid NAME]
 --numworkers is the number of workers in the hadoop cluster
 
 --uniqueid is the identifier/name of the cluster you want
+
+--workload_scale (optional) - default is large. is the setting for hibench.scale.profile  in hibench.conf
+
+--start_data_collection (optional) - start the data collection script after cluster spinup
 
 > Note: uniqueid is an optional parameter, if you do not specify it it uses the current time as the id
 
@@ -136,3 +150,24 @@ python3 monitoring.py --uniqueid NAME [--stop] [--interval X]
 --interval argument provided to monitor.sh i.e sampling interval
 
 digitalocean python wrapper used in scripts: https://github.com/koalalorenzo/python-digitalocean
+
+### Visually compare statistics across different workloads and different algorithms
+```
+python3 graph_comparison.py [-h] --dir_name DIR_NAME --stats STATS --stat_files
+                           STAT_FILES --algos ALGOS [--save_path SAVE_PATH]
+```
+--dir_name is the directory name with all files
+
+--stats is a list of stats to compare, separated by a comma without space
+
+--stat_files is a list of data files to compare, separated by a comma without space
+
+--algos is a list of algo names associated with stat files, , separated by a comma without space
+
+--save_path is a save path for graphs
+
+###### Example usage:
+```
+python graph_comparison.py --dir_name ~/Desktop/capstone/sawcap --stats CPU,MEM --stat_files sawcap_stats.txt 
+                           --algos lasso --save_path ~/Desktop/capstone/sawcap/
+```
