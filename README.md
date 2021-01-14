@@ -150,3 +150,24 @@ python3 monitoring.py --uniqueid NAME [--stop] [--interval X]
 --interval argument provided to monitor.sh i.e sampling interval
 
 digitalocean python wrapper used in scripts: https://github.com/koalalorenzo/python-digitalocean
+
+### Visually compare statistics across different workloads and different algorithms
+```
+python3 graph_comparison.py [-h] --dir_name DIR_NAME --stats STATS --stat_files
+                           STAT_FILES --algos ALGOS [--save_path SAVE_PATH]
+```
+--dir_name is the directory name with all files
+
+--stats is a list of stats to compare, separated by a comma without space
+
+--stat_files is a list of data files to compare, separated by a comma without space
+
+--algos is a list of algo names associated with stat files, , separated by a comma without space
+
+--save_path is a save path for graphs
+
+###### Example usage:
+```
+python graph_comparison.py --dir_name ~/Desktop/capstone/sawcap --stats CPU,MEM --stat_files sawcap_stats.txt 
+                           --algos lasso --save_path ~/Desktop/capstone/sawcap/
+```
