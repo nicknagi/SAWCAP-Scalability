@@ -98,6 +98,9 @@ def modify_bashrc_runner(runner_private_ip):
     
     contents.append(f"export HIBENCH_WORKLOAD_DIR=/usr/local/HiBench/bin/workloads")
 
+    # forward the slack token
+    contents.append(f"export SLACK_TOKEN={os.environ['SLACK_TOKEN']}")
+
     # very hack way of getting env variables to start data collection script
     env_copy = contents[-20:]
     write_file_via_sftp(runner_private_ip, "/home/ubuntu/.environment_export", env_copy)
@@ -187,7 +190,7 @@ def modify_num_iters_runner(runner_private_ip, num_iter):
     filename = "/home/ubuntu/capstone/scripts/run_sawcap_on_workloads.sh"
     contents = read_file_via_sftp(runner_private_ip, filename)
 
-    keyword = "NUM_ITERS="
+    keyword = "NUM_ITER="
     replacement = f"{keyword}{num_iter}\n"
 
     contents = _find_and_replace_line(keyword, replacement, contents)
