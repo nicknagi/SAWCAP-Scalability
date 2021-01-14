@@ -3,7 +3,8 @@ import argparse
 import os
 import time
 from utils import add_hosts_entries, write_slaves_file_on_master, remove_hosts_entry, \
- run_hadoop, modify_bashrc_runner, modify_capstone_worker_configs_runner, update_capstone_repo, modify_spark_conf_runner, try_ssh
+ run_hadoop, modify_bashrc_runner, modify_capstone_worker_configs_runner, update_capstone_repo, modify_spark_conf_runner, try_ssh, \
+     modify_capstone_original_code_slaves_runner, modify_hibench_conf_runner, run_data_collection, start_monitoring
 import logging
 import sys
 import multiprocessing as mp
@@ -24,6 +25,9 @@ parser.add_argument("-n", "--numworkers", type=int,
                     help="The number of workers in the hadoop cluster", required=True)
 parser.add_argument("--uniqueid", type=str,
                     help="id of the cluster used as suffix")
+parser.add_argument("--workload_scale", type=str,
+                    help="param to be set for workload size in hibench.conf", default="large")
+parser.add_argument("--start_data_collection", help="start data collection script on cluster, also starts monitoring", action="store_true")
 args = parser.parse_args()
 
 num_workers = args.numworkers
@@ -33,7 +37,7 @@ REGION = "tor1"
 WORKER_SNAPSHOT_ID = "76642056"
 RUNNER_SNAPSHOT_ID = "76642032"
 MASTER_SNAPSHOT_ID = "76642031"
-WORKER_SIZE = "s-1vcpu-2gb"
+WORKER_SIZE = "s-2vcpu-2gb"
 RUNNER_SIZE = "s-2vcpu-2gb"
 MASTER_SIZE = "s-2vcpu-2gb"
 
@@ -221,11 +225,22 @@ logger.info(f"Updated runner capstone repo")
 # Modify capstone files
 workers = [worker_droplet.private_ip_address for worker_droplet in worker_droplets]
 modify_capstone_worker_configs_runner(runner_droplet.private_ip_address, workers)
-logger.info("Modified runner config.py")
+modify_capstone_original_code_slaves_runner(runner_droplet.private_ip_address, workers)
+logger.info("Modified runner config.py and servers in detect_anomaly.py")
 
-# Modify spark.conf with num_executors = num_workers
+# Modify spark.conf with num_executors = num_workers and hibench.conf with workload size
 modify_spark_conf_runner(runner_droplet.private_ip_address, len(worker_droplets))
-logger.info("Modified runner spark.conf")
+modify_hibench_conf_runner(runner_droplet.private_ip_address, args.workload_scale)
+logger.info("Modified runner spark.conf and hibench.conf")
+
+# Start data collection script
+if args.start_data_collection:
+    for worker_droplet in worker_droplets:
+        start_monitoring(worker_droplet.private_ip_address, 1)
+
+    time.sleep(5)
+
+    run_data_collection(runner_droplet.private_ip_address)
 
 logger.info(f"Done setting up cluster! - hadoop ui: http://{master_droplet.ip_address}:8069")
 
