@@ -105,13 +105,13 @@ run_workload () {
 }
 
 run_sawcap () {
-    (sleep 45 && python3 "$code_path" &> "$logs_dir/sawcap_$1.log") &
+    (python3 "$code_path" &> "$logs_dir/sawcap_$1.log") &
     return $?
 }
 
 run_original_code () {
     # HACK: cd to dir of file so that data is written in the same directory
-    (sleep 45 && cd $original_code_path && python3 "$original_code_path/detect_anomaly.py" lasso 1 &> "$logs_dir/detect_anomaly_$1.log") &
+    (cd $original_code_path && python3 "$original_code_path/detect_anomaly.py" lasso 1 &> "$logs_dir/detect_anomaly_$1.log") &
     return $?
 }
 
