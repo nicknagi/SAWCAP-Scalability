@@ -247,9 +247,15 @@ start_data_collection $wordcount_name $wordcount_prepare $wordcount_run
 # run rf
 start_data_collection $rf_name $rf_prepare $rf_run
 
+original_code_stats_file=''
+if [ ! -z "${should_run_original_code}" ]
+then
+    original_code_stats_file=',original_stats_stats.txt'
+fi
+
 # Create graphs and compile stats and send to slack
 mkdir -p $data_dir/compiled_stats
-python3 $sawcap_dir/graph_comparison.py --dir_name $data_dir --stats CPU,MEM --stats_file sawcap_stats.txt,original_stats_stats.txt --algos lasso --save_path $data_dir/compiled_stats && \
+python3 $sawcap_dir/graph_comparison.py --dir_name $data_dir --stats CPU,MEM --stats_file sawcap_stats.txt$original_code_stats_file --algos lasso --save_path $data_dir/compiled_stats && \
 comma_seperated_files=$(find $data_dir/compiled_stats -maxdepth 1 -type f | tr '\n' ',') && \
 python3 $sawcap_dir/slack_messaging_system.py --text $hostname --files $comma_seperated_files
 
