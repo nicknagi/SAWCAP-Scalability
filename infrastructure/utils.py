@@ -96,10 +96,10 @@ def modify_bashrc_runner(runner_private_ip):
 
     contents = _find_and_replace_line(keyword, replacement, contents)
     
-    contents.append(f"export HIBENCH_WORKLOAD_DIR=/usr/local/HiBench/bin/workloads")
+    contents.append(f"export HIBENCH_WORKLOAD_DIR=/usr/local/HiBench/bin/workloads\n")
 
     # forward the slack token
-    contents.append(f"export SLACK_TOKEN={os.environ['SLACK_TOKEN']}")
+    contents.append(f"export SLACK_TOKEN={os.environ['SLACK_TOKEN']}\n")
 
     # very hack way of getting env variables to start data collection script
     env_copy = contents[-20:]
