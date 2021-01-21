@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import digitalocean
 import argparse
 import os
@@ -34,9 +35,9 @@ num_workers = args.numworkers
 token = os.getenv("DIGITALOCEAN_ACCESS_TOKEN")
 
 REGION = "tor1"
-WORKER_SNAPSHOT_ID = "76642056"
-RUNNER_SNAPSHOT_ID = "76642032"
-MASTER_SNAPSHOT_ID = "76642031"
+WORKER_SNAPSHOT_ID = "77183076" # v3
+RUNNER_SNAPSHOT_ID = "77183059"
+MASTER_SNAPSHOT_ID = "77183051"
 WORKER_SIZE = "s-2vcpu-2gb"
 RUNNER_SIZE = "s-2vcpu-2gb"
 MASTER_SIZE = "s-2vcpu-2gb"
