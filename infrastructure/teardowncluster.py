@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import digitalocean
 import argparse
 import os
