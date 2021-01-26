@@ -164,8 +164,10 @@ def stop_monitoring(worker_private_ip):
 
     ssh.close()
 
-def modify_spark_conf_runner(runner_private_ip, num_workers):
+def modify_spark_conf_runner(runner_private_ip, num_workers, workload_type):
     filename = "/usr/local/HiBench/conf/spark.conf"
+    _copy_local_file_to_remote(f"hdfs_configs/{workload_type}/spark.conf", filename, runner_private_ip)
+
     contents = read_file_via_sftp(runner_private_ip, filename)
 
     keyword = "hibench.yarn.executor.num"
@@ -211,6 +213,21 @@ def run_data_collection(runner_private_ip):
 
     ssh.close()
 
+# workload type (str): tiny, small, large etc. used to write to proper configs
+# function takes configs stored locally and copies to given droplet
+def write_hadoop_configs(workload_type, droplet_private_ip):
+    local_config_folder = f"hdfs_configs/{workload_type}"
+    remote_config_folder = "/usr/local/hadoop/etc/hadoop"
+
+    _copy_local_file_to_remote(f"{local_config_folder}/yarn-site.xml", f"{remote_config_folder}/yarn-site.xml", droplet_private_ip)
+    _copy_local_file_to_remote(f"{local_config_folder}/mapred-site.xml", f"{remote_config_folder}/mapred-site.xml", droplet_private_ip)
+    _copy_local_file_to_remote(f"{local_config_folder}/hadoop-env.sh", f"{remote_config_folder}/hadoop-env.sh", droplet_private_ip)
+
+def _copy_local_file_to_remote(local_file_path, remote_file_path, droplet_private_ip):
+    with open(local_file_path, "r") as f:
+        contents = f.readlines()
+    
+    write_file_via_sftp(droplet_private_ip, remote_file_path, contents)
 
 def _find_and_replace_line(search_keyword, replacement, contents):
     new_contents = []

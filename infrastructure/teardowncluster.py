@@ -29,3 +29,4 @@ my_droplets = manager.get_all_droplets()
 for droplet in my_droplets:
     if droplet.name in names:
         droplet.destroy()
+        print(f"Droplet {droplet.name} destroyed")

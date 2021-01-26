@@ -5,7 +5,8 @@ import os
 import time
 from utils import add_hosts_entries, write_slaves_file_on_master, remove_hosts_entry, \
  run_hadoop, modify_bashrc_runner, modify_capstone_worker_configs_runner, update_capstone_repo, modify_spark_conf_runner, try_ssh, \
-     modify_capstone_original_code_slaves_runner, modify_hibench_conf_runner, run_data_collection, start_monitoring, modify_num_iters_runner
+     modify_capstone_original_code_slaves_runner, modify_hibench_conf_runner, run_data_collection, start_monitoring, modify_num_iters_runner, \
+         write_hadoop_configs
 import logging
 import sys
 import multiprocessing as mp
@@ -34,13 +35,18 @@ args = parser.parse_args()
 num_workers = args.numworkers
 token = os.getenv("DIGITALOCEAN_ACCESS_TOKEN")
 
+# Set the VM size depending on workload size
+VM_SIZE="s-2vcpu-2gb"
+if args.workload_scale == "large":
+    VM_SIZE = "s-2vcpu-4gb"
+
 REGION = "tor1"
 WORKER_SNAPSHOT_ID = "77183076" # v3
 RUNNER_SNAPSHOT_ID = "77183059"
 MASTER_SNAPSHOT_ID = "77183051"
-WORKER_SIZE = "s-2vcpu-2gb"
-RUNNER_SIZE = "s-2vcpu-2gb"
-MASTER_SIZE = "s-2vcpu-2gb"
+WORKER_SIZE = VM_SIZE
+RUNNER_SIZE = VM_SIZE
+MASTER_SIZE = VM_SIZE
 
 name_suffix = str(int(time.time())) if args.uniqueid is None else args.uniqueid
 master_name = "hadoop-master-" + name_suffix
@@ -49,6 +55,10 @@ worker_names = [
     f"hadoop-worker-{name_suffix}-{x:02d}" for x in range(1, num_workers+1)]
 manager = digitalocean.Manager(token=token)
 keys = manager.get_all_sshkeys()
+
+if args.workload_scale not in ["tiny", "small", "large"]:
+    print("Invalid workload scale type!")
+    sys.exit(1)
 
 # -----------------------------  Utility Functions ---------------------------------------------
 
@@ -159,6 +169,10 @@ write_slaves_file_on_master(
     worker_private_ips, master_droplet.private_ip_address)
 logger.info("Modified master slaves file")
 
+# Modify Hadoop configs on master
+write_hadoop_configs(args.workload_scale, master_droplet.private_ip_address)
+logger.info("Modified master Hadoop configs")
+
 # ---------------------------- Modify Worker Files ---------------------------------------------------
 
 
@@ -184,6 +198,10 @@ def setup_worker(worker_droplet):
     # Update capstone repo
     update_capstone_repo(worker_droplet.private_ip_address)
     logger.info(f"Updated {worker_droplet.name} capstone repo")
+
+    # Modify Hadoop Configs
+    write_hadoop_configs(args.workload_scale, worker_droplet.private_ip_address)
+    logger.info(f"Modified {worker_droplet.name} Hadoop Configs")
 
 num_workers = min(len(worker_droplets), 50)
 # Setup all workers
@@ -215,6 +233,10 @@ lines_to_add_runner = [f"{master_droplet.private_ip_address} spark-master\n"]
 add_hosts_entries(lines_to_add_runner, runner_droplet.private_ip_address)
 logger.info("Modified runner /etc/hosts")
 
+# Modify Hadoop Configs
+write_hadoop_configs(args.workload_scale, runner_droplet.private_ip_address)
+logger.info("Modified runner Hadoop Configs")
+
 # Modify runner .bashrc
 modify_bashrc_runner(runner_droplet.private_ip_address)
 logger.info("Modified runner .bashrc")
@@ -230,7 +252,7 @@ modify_capstone_original_code_slaves_runner(runner_droplet.private_ip_address, w
 logger.info("Modified runner config.py and servers in detect_anomaly.py")
 
 # Modify spark.conf with num_executors = num_workers and hibench.conf with workload size
-modify_spark_conf_runner(runner_droplet.private_ip_address, len(worker_droplets))
+modify_spark_conf_runner(runner_droplet.private_ip_address, len(worker_droplets), args.workload_scale)
 modify_hibench_conf_runner(runner_droplet.private_ip_address, args.workload_scale)
 logger.info("Modified runner spark.conf and hibench.conf")
 
