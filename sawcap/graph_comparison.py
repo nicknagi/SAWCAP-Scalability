@@ -11,7 +11,7 @@ def parse_stats_file(file, stat_names):
     current_workload_data = {}
 
     for line in open(file):
-        if "sawcap problems" in line:
+        if "sawcap failure" in line:
             current_workload_data = {}
 
         split = line.split()

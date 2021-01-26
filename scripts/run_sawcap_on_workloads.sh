@@ -170,6 +170,12 @@ start_data_collection () {
             run_workload "$workload_dir$run_path" "$workload_name $i fails: $num_fails"
             ret_code=$?
 
+            # Stop the original code if running
+            if [ ! -z "${should_run_original_code}" ]
+            then
+                stop_original_code $O_PID
+            fi
+
             # kill sawcap to export stats if pid exists, else retry workload (for example if anomaly detected sawcap pid will not exist)
             if ps -p $PID > /dev/null
             then
@@ -177,20 +183,17 @@ start_data_collection () {
             else
                  print_warning "sawcap.py process does not exist, retrying workload"
                  echo "sawcap failure; disregard stat $workload_name $i" >> $stats_path
+                 echo "sawcap failure; disregard stat $workload_name $i" >> $original_stats_path
                  sleep 5
                  continue
             fi
 
-            # Stop the original code if running
-            if [ ! -z "${should_run_original_code}" ]
-            then
-                stop_original_code $O_PID
-            fi
 
             if [ $ret_code -gt 0 ]
             then
                 print_warning "HiBench workload failed incrementing num_fails"
                 echo "workload failure; disregard stat $workload_name $i" >> $stats_path
+                echo "workload failure; disregard stat $workload_name $i" >> $original_stats_path
                 num_fails=$((num_fails+1))
                 sleep 30
                 if [ $num_fails -eq 3 ]
@@ -238,8 +241,8 @@ start_data_collection $kmeans_name $kmeans_prepare $kmeans_run
 # run pagerank
 start_data_collection $pagerank_name $pagerank_prepare $pagerank_run 
 
-# run svm
-start_data_collection $svm_name $svm_prepare $svm_run 
+# # run svm -- takes too long
+# start_data_collection $svm_name $svm_prepare $svm_run 
 
 # run wordcount
 start_data_collection $wordcount_name $wordcount_prepare $wordcount_run 
