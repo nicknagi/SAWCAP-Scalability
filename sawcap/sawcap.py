@@ -94,6 +94,9 @@ class Sawcap:
         f.write(f'MEM Prediction Accuracy: {acc_mem:.3f}\n')
         f.close()
 
+        # Temp change to dump all stats
+        logging.info(stats)
+
     def calculate_errors(self):
 	    logging.info("\n### Accuracy Rates ###")
 

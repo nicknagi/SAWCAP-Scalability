@@ -68,6 +68,9 @@ def export_stats(acc_cpu, acc_mem, anomaly_detected=False):
         f.write("Anomaly Detected\n")
     f.close()
 
+    logging.info(predicted_resources)
+    logging.info(actual_resources)
+
 # Exit after catching a Keyboard Interrupt
 def handler(signal_received, frame):
     global phase_database, algo, actual_resources, predicted_resources, get_accuracy
