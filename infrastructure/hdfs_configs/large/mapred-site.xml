@@ -27,19 +27,19 @@
     </property>
     <property>
         <name>mapreduce.map.memory.mb</name>
-        <value>6192</value>
+        <value>6792</value>
     </property>
     <property>
         <name>mapreduce.reduce.memory.mb</name>
-        <value>6192</value>
+        <value>6792</value>
     </property>
     <property>
         <name>mapreduce.map.java.opts</name>
-        <value>-Xmx5000m</value>
+        <value>-Xmx5500m</value>
     </property>
     <property>
         <name>mapreduce.reduce.java.opts</name>
-        <value>-Xmx5000m</value>
+        <value>-Xmx5500m</value>
     </property>
     <property>
         <name>mapreduce.task.io.sort.mb</name>
