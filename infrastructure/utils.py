@@ -199,6 +199,49 @@ def modify_num_iters_runner(runner_private_ip, num_iter):
     
     write_file_via_sftp(runner_private_ip, filename, contents)
 
+def add_prometheus_conf_orchestrator(node_ips, uniqueid):
+
+    orchestrator_ip = "127.0.0.1"
+
+    filename = "/etc/prometheus/prometheus.yml"
+    contents = read_file_via_sftp(orchestrator_ip, filename)
+
+    keyword1 = "#NODEREPLACE"
+    keyword2 = "#SAWCAPREPLACE"
+    replacement1 = f"#NODEREPLACE\n#NODE_{uniqueid}\n"
+    replacement2 = f"#SAWCAPREPLACE\n#SAWCAP_{uniqueid}\n"
+
+    for node_ip in node_ips:
+        replacement1 += f"                    - {node_ip}:9100\n"
+        replacement2 += f"                    - {node_ip}:9200\n"
+
+    replacement1 += f"#NODE_END_{uniqueid}\n"
+    replacement2 += f"#SAWCAP_END_{uniqueid}\n"
+
+    contents = _find_and_replace_line(keyword1, replacement1, contents)
+    contents = _find_and_replace_line(keyword2, replacement2, contents)
+
+    write_file_via_sftp(orchestrator_ip, filename, contents)
+
+def remove_prometheus_conf_orchestrator(uniqueid):
+
+    orchestrator_ip = "127.0.0.1"
+
+    filename = "/etc/prometheus/prometheus.yml"
+    contents = read_file_via_sftp(orchestrator_ip, filename)
+
+    keyword11 = f"#NODE_{uniqueid}"
+    keyword12 = f"#NODE_END_{uniqueid}"
+
+    keyword21 = f"#SAWCAP_{uniqueid}"
+    keyword22 = f"#SAWCAP_END_{uniqueid}"
+
+    contents = _remove_lines_between_two_keywords(keyword11, keyword12, contents)
+    contents = _remove_lines_between_two_keywords(keyword21, keyword22, contents)
+
+    logger.info(contents)
+    #write_file_via_sftp(orchestrator_ip, filename, contents)
+
 def run_data_collection(runner_private_ip):
     logger.info(f"Starting data collection script")
     command = "(. ./.environment_export; cd /home/ubuntu/capstone/scripts; /usr/bin/bash run_workloads_in_background.sh 1 > /dev/null 2>&1) &"
@@ -239,6 +282,10 @@ def _find_and_replace_line(search_keyword, replacement, contents):
     if new_contents == contents:
         logger.warning(f"File already has the change for keyword: {search_keyword}")
     return new_contents
+
+def _remove_lines_between_two_keywords(keyword1, keyword2, contents):
+    new_contents = []
+    return contents
 
 def try_ssh(droplet_private_ip):
     ssh = paramiko.SSHClient()
