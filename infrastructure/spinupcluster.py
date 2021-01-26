@@ -46,8 +46,8 @@ WORKER_SNAPSHOT_ID = "77183076" # v3
 RUNNER_SNAPSHOT_ID = "77183059"
 MASTER_SNAPSHOT_ID = "77183051"
 WORKER_SIZE = VM_SIZE
-RUNNER_SIZE = VM_SIZE
-MASTER_SIZE = VM_SIZE
+RUNNER_SIZE = "s-2vcpu-2gb"
+MASTER_SIZE = "s-2vcpu-4gb"
 
 name_suffix = str(int(time.time())) if args.uniqueid is None else args.uniqueid
 master_name = "hadoop-master-" + name_suffix
