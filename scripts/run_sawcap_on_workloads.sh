@@ -173,12 +173,7 @@ start_data_collection () {
             # Stop the original code if running
             if [ ! -z "${should_run_original_code}" ]
             then
-                if ps -p $O_PID ? /dev/null
-                then
-                    stop_original_code $O_PID
-                else
-                    print_warning "detect_anomaly.py process does not exist, be careful of the stats collected"
-                fi
+                stop_original_code $O_PID
             fi
 
             # kill sawcap to export stats if pid exists, else retry workload (for example if anomaly detected sawcap pid will not exist)
