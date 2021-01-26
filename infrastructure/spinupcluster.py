@@ -10,6 +10,7 @@ from utils import add_hosts_entries, write_slaves_file_on_master, remove_hosts_e
 import logging
 import sys
 import multiprocessing as mp
+import random
 
 # Profiling
 start = time.time()
@@ -29,7 +30,7 @@ parser.add_argument("--uniqueid", type=str,
                     help="id of the cluster used as suffix")
 parser.add_argument("--workload_scale", type=str,
                     help="param to be set for workload size in hibench.conf", default="large")
-parser.add_argument("--start_data_collection", help="start data collection script on cluster, also starts monitoring", type=str, default="10")
+parser.add_argument("--start_data_collection", help="start data collection script on cluster, also starts monitoring", type=str)
 args = parser.parse_args()
 
 num_workers = args.numworkers
@@ -38,7 +39,7 @@ token = os.getenv("DIGITALOCEAN_ACCESS_TOKEN")
 # Set the VM size depending on workload size
 VM_SIZE="s-2vcpu-2gb"
 if args.workload_scale == "large":
-    VM_SIZE = "s-2vcpu-4gb"
+    VM_SIZE = "s-4vcpu-8gb"
 
 REGION = "tor1"
 WORKER_SNAPSHOT_ID = "77183076" # v3
@@ -99,7 +100,7 @@ def wait_until_droplet_ready(droplet):
 
     while not droplet_ready(droplet):
         logger.debug(f"Waiting for {droplet.name} to complete")
-        time.sleep(2)
+        time.sleep(5)
 
     logger.debug(f"{droplet.name} Completed")
 
@@ -203,7 +204,7 @@ def setup_worker(worker_droplet):
     write_hadoop_configs(args.workload_scale, worker_droplet.private_ip_address)
     logger.info(f"Modified {worker_droplet.name} Hadoop Configs")
 
-num_workers = min(len(worker_droplets), 50)
+num_workers = 3
 # Setup all workers
 with mp.Pool(num_workers) as pool:
     pool.map(setup_worker, worker_droplets)
