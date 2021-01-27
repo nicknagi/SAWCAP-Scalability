@@ -221,7 +221,6 @@ def write_hadoop_configs(workload_type, droplet_private_ip):
 
     _copy_local_file_to_remote(f"{local_config_folder}/yarn-site.xml", f"{remote_config_folder}/yarn-site.xml", droplet_private_ip)
     _copy_local_file_to_remote(f"{local_config_folder}/mapred-site.xml", f"{remote_config_folder}/mapred-site.xml", droplet_private_ip)
-    _copy_local_file_to_remote(f"{local_config_folder}/hadoop-env.sh", f"{remote_config_folder}/hadoop-env.sh", droplet_private_ip)
 
 def _copy_local_file_to_remote(local_file_path, remote_file_path, droplet_private_ip):
     with open(local_file_path, "r") as f:
