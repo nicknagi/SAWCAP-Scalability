@@ -41,8 +41,8 @@ class MetricsPublisher:
                     "host": self.hostname
                 },
                 "fields": {
-                    "acc_cpu": float(acc_cpu[0]),
-                    "acc_mem": float(acc_mem[1])
+                    "acc_cpu": float(acc_cpu),
+                    "acc_mem": float(acc_mem)
                 }
             }
         ]
