@@ -9,7 +9,7 @@ class MetricsPublisher:
         try:
             self.client = InfluxDBClient(ORCHESTRATOR_PRIVATE_IP, 8086, 'metrics')
             self.client.create_database('metrics')
-            self.hostname = str(socket.hostname())
+            self.hostname = str(socket.getfqdn())
         except Exception as e:
             logging.error(f"There was a problem connecting to InfluxDB at IP {ORCHESTRATOR_PRIVATE_IP} {e}")
             logging.info("Will not publish statistics")
@@ -32,4 +32,4 @@ class MetricsPublisher:
         ]
         self.client.write_points(json_body)
 
-        
+
