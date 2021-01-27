@@ -259,7 +259,7 @@ logger.info("Modified runner spark.conf and hibench.conf")
 
 # -------------------------- Prometheus Setup -----------------------------------------
 
-vm_ips = {}
+vm_ips = []
 
 if master_droplet.private_ip_address is not None:
     vm_ips.append(master_droplet.private_ip_address)
