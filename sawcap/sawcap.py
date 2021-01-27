@@ -11,6 +11,7 @@ from characterizer.characterizer import Characterizer
 from config import INTERVAL, WORKERS, LOG_LEVEL, ENABLE_STATS, DATA_DIR, STATS_FILE, ANOMALY_DETECTION_ENABLED
 import logging
 from signal import signal, SIGINT, SIGTERM
+from metrics.metrics_publisher import MetricsPublisher
 
 import numpy as np
 import sys
@@ -33,6 +34,7 @@ class Sawcap:
         self.data_collector = DataCollector(WORKERS)
         self.characterizer = Characterizer(self.database)
         self.predictor = Predictor(self.database, ALGO)
+        self.metrics_publisher = MetricsPublisher()
         self.curr_phase = ""
 
         # for graceful exit
@@ -53,9 +55,11 @@ class Sawcap:
 
             # Log data for error calculation and print predictions
             if ENABLE_STATS:
+                actual = self.database.get_curr_resource()
                 stats["predicted_data"].append(predicted)
-                stats["actual_data"].append(self.database.get_curr_resource())
+                stats["actual_data"].append(actual)
                 self.calculate_errors()
+                self.metrics_publisher.publish_predictions(actual, predicted)
 
             logging.info("Actual: " + str(["{:.2f}".format(a) for a in self.database.get_curr_resource()]) + " Predicted:" + str(["{:.2f}".format(a) for a in predicted]))
 

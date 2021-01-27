@@ -57,6 +57,12 @@ actual_resources = []
 # flag to record accuracy. Turn off when benchmarking to prevent memory overhead. Default to False
 get_accuracy = False
 
+from influxdb import InfluxDBClient
+
+client = InfluxDBClient("192.168.0.3", 8086, 'metrics')
+client.create_database('metrics')
+hostname = str(socket.hostname())
+
 def export_stats(acc_cpu, acc_mem, anomaly_detected=False):
     file_path = DATA_DIR + STATS_FILE
 
@@ -512,11 +518,32 @@ def SMAPE(y_true, y_pred):
     y_true, y_pred = np.array(y_true), np.array(y_pred) # convert to numpy arrays
     return np.mean(np.abs(y_true - y_pred) / (np.abs(y_true) + np.abs(y_pred) + 1e-8)) * 100
 
+def publish_predictions(actual, predicted):
+    json_body = [
+            {
+                "measurement": "predictions_old_code",
+                "tags": {
+                    "host": hostname
+                },
+                "fields": {
+                    "actual_cpu": actual[0],
+                    "actual_mem": actual[1],
+                    "predicted_cpu": predicted[0],
+                    "predicted_mem": predicted[1]
+                }
+            }
+        ]
+    client.write_points(json_body)
+
 def detect_anomaly(predicted, cur_resources, cur_phase, phase_status):
     # compare the predicted resource with the current resource
     # each mismatch changes a confidence
     global anom_confidence
     prediction_str = "Actual:" + str(["{:.2f}".format(a) for a in cur_resources]) + "Predicted:" + str(["{:.2f}".format(a) for a in predicted])
+
+    # Publish stats to database
+    publish_predictions(cur_resources, predicted)
+
     logging.info(prediction_str)
     if cur_phase == "":
         return
