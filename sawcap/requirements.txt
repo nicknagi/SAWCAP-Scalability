@@ -3,4 +3,4 @@ numpy
 matplotlib
 pandas
 slack_sdk
-influxdb-client
+influxdb

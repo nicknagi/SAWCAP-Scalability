@@ -230,6 +230,9 @@ then
     rm -f $original_db_path
 fi
 
+# Install requirements
+pip3 install -r "$sawcap_dir/requirements.txt"
+
 # run bayes
 # start_data_collection $bayes_name $bayes_prepare $bayes_run 
 
@@ -260,7 +263,6 @@ fi
 
 # Create graphs and compile stats and send to slack
 mkdir -p $data_dir/compiled_stats
-pip3 install -r "$sawcap_dir/requirements.txt"
 python3 "$sawcap_dir/graph_comparison.py" --dir_name $data_dir --stats CPU,MEM --stat_file sawcap_stats.txt$original_code_stats_file --algos lasso_new$original_code_model --save_path $data_dir/compiled_stats/ && \
 comma_seperated_files=$(find $data_dir/compiled_stats -maxdepth 1 -type f | tr '\n' ',') && \
 python3 "$sawcap_dir/slack_messaging_system.py" --text $(hostname) --files $comma_seperated_files
