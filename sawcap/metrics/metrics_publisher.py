@@ -23,10 +23,10 @@ class MetricsPublisher:
                     "host": self.hostname
                 },
                 "fields": {
-                    "actual_cpu": actual[0],
-                    "actual_mem": actual[1],
-                    "predicted_cpu": predicted[0],
-                    "predicted_mem": predicted[1]
+                    "actual_cpu": float(actual[0]),
+                    "actual_mem": float(actual[1]),
+                    "predicted_cpu": float(predicted[0]),
+                    "predicted_mem": float(predicted[1])
                 }
             }
         ]

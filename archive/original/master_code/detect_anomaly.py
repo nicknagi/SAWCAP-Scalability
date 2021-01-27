@@ -8,6 +8,7 @@ from sklearn import linear_model
 import numpy as np
 import subprocess
 import logging
+import socket
 
 logging.basicConfig(format='Old Code: %(asctime)s - %(message)s',
                     datefmt='%d-%b-%y %H:%M:%S', level=logging.DEBUG)
@@ -526,10 +527,10 @@ def publish_predictions(actual, predicted):
                     "host": hostname
                 },
                 "fields": {
-                    "actual_cpu": actual[0],
-                    "actual_mem": actual[1],
-                    "predicted_cpu": predicted[0],
-                    "predicted_mem": predicted[1]
+                    "actual_cpu": float(actual[0]),
+                    "actual_mem": float(actual[1]),
+                    "predicted_cpu": float(predicted[0]),
+                    "predicted_mem": float(predicted[1])
                 }
             }
         ]
