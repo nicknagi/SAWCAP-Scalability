@@ -534,6 +534,8 @@ def publish_predictions(actual, predicted):
     client.write_points(json_body)
 
 def publish_accuracy(acc_cpu, acc_mem):
+    if np.isnan(acc_cpu):
+        return
     json_body = [
             {
                 "measurement": "accuracy_old_code",

@@ -2,6 +2,7 @@ from influxdb import InfluxDBClient
 import logging
 from config import ORCHESTRATOR_PRIVATE_IP
 import socket
+import numpy as np
 
 class MetricsPublisher:
     def __init__(self):
@@ -34,6 +35,8 @@ class MetricsPublisher:
     
     # Args are floats with accuracies -- cpu and mem
     def publish_accuracy(self, acc_cpu, acc_mem):
+        if np.isnan(acc_cpu):
+            return
         json_body = [
             {
                 "measurement": "accuracy",
