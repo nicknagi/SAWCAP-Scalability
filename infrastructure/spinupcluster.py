@@ -267,7 +267,8 @@ if master_droplet.private_ip_address is not None:
 if runner_droplet.private_ip_address is not None:
     vm_ips.append(runner_droplet.private_ip_address)
 
-vm_ips.append(worker.private_ip_address for worker in worker_droplets)
+for worker in worker_droplets:
+    vm_ips.append(worker_droplet.private_ip_address
 
 add_prometheus_conf_orchestrator(vm_ips, name_suffix)
 logger.info("Modified prometheus config on orchestrator VM")
