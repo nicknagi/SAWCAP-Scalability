@@ -27,6 +27,8 @@ names = [master_name, runner_name, *worker_names]
 
 # remove prometheus config
 remove_prometheus_conf_orchestrator(name_suffix)
+os.system("sudo service prometheus restart")
+print("Removed prometheus configuration")
 
 manager = digitalocean.Manager(token=token)
 my_droplets = manager.get_all_droplets()
