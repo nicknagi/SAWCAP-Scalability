@@ -58,8 +58,10 @@ class Sawcap:
                 actual = self.database.get_curr_resource()
                 stats["predicted_data"].append(predicted)
                 stats["actual_data"].append(actual)
-                self.calculate_errors()
+                acc_cpu, acc_mem = self.calculate_errors()
+
                 self.metrics_publisher.publish_predictions(actual, predicted)
+                self.metrics_publisher.publish_accuracy(acc_cpu, acc_mem)
 
             logging.info("Actual: " + str(["{:.2f}".format(a) for a in self.database.get_curr_resource()]) + " Predicted:" + str(["{:.2f}".format(a) for a in predicted]))
 

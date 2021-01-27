@@ -31,5 +31,21 @@ class MetricsPublisher:
             }
         ]
         self.client.write_points(json_body)
+    
+    # Args are floats with accuracies -- cpu and mem
+    def publish_accuracy(self, acc_cpu, acc_mem):
+        json_body = [
+            {
+                "measurement": "accuracy",
+                "tags": {
+                    "host": self.hostname
+                },
+                "fields": {
+                    "acc_cpu": float(acc_cpu[0]),
+                    "acc_mem": float(acc_mem[1])
+                }
+            }
+        ]
+        self.client.write_points(json_body)
 
 

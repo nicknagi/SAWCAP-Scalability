@@ -87,16 +87,7 @@ def handler(signal_received, frame):
         print("\n### Accuracy Rates ###")
 
         # CPU resource usage accuracy
-        actual_resources_cpu = [resource[0] for resource in actual_resources]
-        predicted_resources_cpu = [resource[0] for resource in predicted_resources]
-        acc_cpu = 100 - SMAPE(actual_resources_cpu, predicted_resources_cpu)
-        print('CPU Prediction Accuracy: %.3f %%' % (acc_cpu))
-
-        # Memory usage accuracy
-        actual_resources_mem = [resource[1] for resource in actual_resources]
-        predicted_resources_mem = [resource[1] for resource in predicted_resources]
-        acc_mem = 100 - SMAPE(actual_resources_mem, predicted_resources_mem)
-        print('MEM Prediction Accuracy: %.3f %%' % (acc_mem))
+        acc_cpu, acc_mem = calculate_accuracy()
 
         export_stats(acc_cpu, acc_mem)
 
@@ -106,6 +97,21 @@ def handler(signal_received, frame):
 
     sys.exit(2)
 
+def calculate_accuracy():
+    global phase_database, algo, actual_resources, predicted_resources, get_accuracy
+    # CPU resource usage accuracy
+    actual_resources_cpu = [resource[0] for resource in actual_resources]
+    predicted_resources_cpu = [resource[0] for resource in predicted_resources]
+    acc_cpu = 100 - SMAPE(actual_resources_cpu, predicted_resources_cpu)
+    print('CPU Prediction Accuracy: %.3f %%' % (acc_cpu))
+
+    # Memory usage accuracy
+    actual_resources_mem = [resource[1] for resource in actual_resources]
+    predicted_resources_mem = [resource[1] for resource in predicted_resources]
+    acc_mem = 100 - SMAPE(actual_resources_mem, predicted_resources_mem)
+    print('MEM Prediction Accuracy: %.3f %%' % (acc_mem))
+    return acc_cpu, acc_mem
+
 # Exit gracefully after detecting an anomaly
 def print_and_exit(code):
     global actual_resources, predicted_resources, get_accuracy
@@ -114,16 +120,7 @@ def print_and_exit(code):
         print("\n### Accuracy Rates ###")
 
         # CPU resource usage accuracy
-        actual_resources_cpu = [resource[0] for resource in actual_resources]
-        predicted_resources_cpu = [resource[0] for resource in predicted_resources]
-        acc_cpu = 100 - SMAPE(actual_resources_cpu, predicted_resources_cpu)
-        print('CPU Prediction Accuracy: %.3f %%' % (acc_cpu))
-
-        # Memory usage accuracy
-        actual_resources_mem = [resource[1] for resource in actual_resources]
-        predicted_resources_mem = [resource[1] for resource in predicted_resources]
-        acc_mem = 100 - SMAPE(actual_resources_mem, predicted_resources_mem)
-        print('MEM Prediction Accuracy: %.3f %%' % (acc_mem))
+        acc_cpu, acc_mem = calculate_accuracy()
 
         export_stats(acc_cpu, acc_mem, anomaly_detected=True)
 
@@ -536,6 +533,21 @@ def publish_predictions(actual, predicted):
         ]
     client.write_points(json_body)
 
+def publish_accuracy(acc_cpu, acc_mem):
+    json_body = [
+            {
+                "measurement": "accuracy_old_code",
+                "tags": {
+                    "host": hostname
+                },
+                "fields": {
+                    "acc_cpu": float(acc_cpu),
+                    "acc_mem": float(acc_mem)
+                }
+            }
+        ]
+    client.write_points(json_body)
+
 def detect_anomaly(predicted, cur_resources, cur_phase, phase_status):
     # compare the predicted resource with the current resource
     # each mismatch changes a confidence
@@ -544,6 +556,8 @@ def detect_anomaly(predicted, cur_resources, cur_phase, phase_status):
 
     # Publish stats to database
     publish_predictions(cur_resources, predicted)
+    acc_cpu, acc_mem = calculate_accuracy()
+    publish_accuracy(acc_cpu, acc_mem)
 
     logging.info(prediction_str)
     if cur_phase == "":
