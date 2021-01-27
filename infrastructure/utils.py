@@ -215,7 +215,7 @@ def add_prometheus_conf_orchestrator(node_ips, uniqueid):
 
     contents = _find_and_replace_line(keyword1, replacement1, contents)
     f.truncate(0)
-    f.write("\n".join(str(line) for line in contents))
+    f.writelines(contents)
     f.close()
 
 def remove_prometheus_conf_orchestrator(uniqueid):
