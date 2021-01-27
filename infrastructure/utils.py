@@ -276,11 +276,11 @@ def _find_and_replace_line(search_keyword, replacement, contents):
     return new_contents
 
 def _remove_lines_between_two_keywords(keyword1, keyword2, contents):
-    write = true
+    write = True
     new_contents = []
     for line in contents:
         if keyword1 in line:
-            write = false
+            write = False
         if write:
             new_contents.append(line)
             
