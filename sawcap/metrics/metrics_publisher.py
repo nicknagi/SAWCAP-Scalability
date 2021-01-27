@@ -7,7 +7,7 @@ class MetricsPublisher:
     def __init__(self):
         self.client = None
         try:
-            self.client = InfluxDBClient(ORCHESTRATOR_PRIVATE_IP, 8086, 'metrics')
+            self.client = InfluxDBClient(ORCHESTRATOR_PRIVATE_IP, 8086, database='metrics')
             self.client.create_database('metrics')
             self.hostname = str(socket.getfqdn())
         except Exception as e:

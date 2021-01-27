@@ -59,9 +59,9 @@ get_accuracy = False
 
 from influxdb import InfluxDBClient
 
-client = InfluxDBClient("192.168.0.3", 8086, 'metrics')
+client = InfluxDBClient("192.168.0.3", 8086, database='metrics')
 client.create_database('metrics')
-hostname = str(socket.hostname())
+hostname = str(socket.getfqdn())
 
 def export_stats(acc_cpu, acc_mem, anomaly_detected=False):
     file_path = DATA_DIR + STATS_FILE
