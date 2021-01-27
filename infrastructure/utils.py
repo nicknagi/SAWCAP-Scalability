@@ -284,7 +284,7 @@ def _remove_lines_between_two_keywords(keyword1, keyword2, contents):
         if write:
             new_contents.append(line)
             
-    return contents
+    return new_contents
 
 def try_ssh(droplet_private_ip):
     ssh = paramiko.SSHClient()
