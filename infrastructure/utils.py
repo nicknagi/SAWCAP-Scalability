@@ -201,27 +201,22 @@ def modify_num_iters_runner(runner_private_ip, num_iter):
 
 def add_prometheus_conf_orchestrator(node_ips, uniqueid):
 
-    orchestrator_ip = "127.0.0.1"
-
     filename = "/etc/prometheus/prometheus.yml"
-    contents = read_file_via_sftp(orchestrator_ip, filename)
+    f = open(filename, "r+")
+    contents = f.readlines()
 
     keyword1 = "#NODEREPLACE"
-    keyword2 = "#SAWCAPREPLACE"
     replacement1 = f"#NODEREPLACE\n#NODE_{uniqueid}\n"
-    replacement2 = f"#SAWCAPREPLACE\n#SAWCAP_{uniqueid}\n"
 
     for node_ip in node_ips:
         replacement1 += f"                    - {node_ip}:9100\n"
-        replacement2 += f"                    - {node_ip}:9200\n"
 
     replacement1 += f"#NODE_END_{uniqueid}\n"
-    replacement2 += f"#SAWCAP_END_{uniqueid}\n"
 
     contents = _find_and_replace_line(keyword1, replacement1, contents)
-    contents = _find_and_replace_line(keyword2, replacement2, contents)
-
-    write_file_via_sftp(orchestrator_ip, filename, contents)
+    f.truncate(0)
+    f.write(contents)
+    f.close()
 
 def remove_prometheus_conf_orchestrator(uniqueid):
 
