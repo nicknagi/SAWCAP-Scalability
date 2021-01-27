@@ -2,6 +2,7 @@
 import digitalocean
 import argparse
 import os
+from utils import remove_prometheus_conf_orchestrator
 
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument("--uniqueid", type=str,
@@ -24,9 +25,13 @@ runner_name = "runner-" + name_suffix
 worker_names = [f"hadoop-worker-{name_suffix}-{x:02d}" for x in range(1, 10000+1)]
 names = [master_name, runner_name, *worker_names]
 
+# remove prometheus config
+remove_prometheus_conf_orchestrator(name_suffix)
+
 manager = digitalocean.Manager(token=token)
 my_droplets = manager.get_all_droplets()
 for droplet in my_droplets:
     if droplet.name in names:
         droplet.destroy()
         print(f"Droplet {droplet.name} destroyed")
+

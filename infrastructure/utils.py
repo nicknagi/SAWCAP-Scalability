@@ -221,22 +221,18 @@ def add_prometheus_conf_orchestrator(node_ips, uniqueid):
 
 def remove_prometheus_conf_orchestrator(uniqueid):
 
-    orchestrator_ip = "127.0.0.1"
-
     filename = "/etc/prometheus/prometheus.yml"
-    contents = read_file_via_sftp(orchestrator_ip, filename)
+    f = open(filename, "r")
+    contents = f.readlines()
+    f.close()
 
     keyword11 = f"#NODE_{uniqueid}"
     keyword12 = f"#NODE_END_{uniqueid}"
 
-    keyword21 = f"#SAWCAP_{uniqueid}"
-    keyword22 = f"#SAWCAP_END_{uniqueid}"
-
     contents = _remove_lines_between_two_keywords(keyword11, keyword12, contents)
-    contents = _remove_lines_between_two_keywords(keyword21, keyword22, contents)
-
-    logger.info(contents)
-    #write_file_via_sftp(orchestrator_ip, filename, contents)
+    f = open(filename, "w")
+    f.writelines(contents)
+    f.close()
 
 def run_data_collection(runner_private_ip):
     logger.info(f"Starting data collection script")
@@ -280,7 +276,14 @@ def _find_and_replace_line(search_keyword, replacement, contents):
     return new_contents
 
 def _remove_lines_between_two_keywords(keyword1, keyword2, contents):
+    write = true
     new_contents = []
+    for line in contents:
+        if keyword1 in line:
+            write = false
+        if write:
+            new_contents.append(line)
+            
     return contents
 
 def try_ssh(droplet_private_ip):
