@@ -237,13 +237,13 @@ pip3 install -r "$sawcap_dir/requirements.txt"
 # start_data_collection $bayes_name $bayes_prepare $bayes_run 
 
 # run nweight
-start_data_collection $nweight_name $nweight_prepare $nweight_run
+# start_data_collection $nweight_name $nweight_prepare $nweight_run
 
 # run kmeans
-start_data_collection $kmeans_name $kmeans_prepare $kmeans_run 
+# start_data_collection $kmeans_name $kmeans_prepare $kmeans_run 
 
 # run pagerank
-start_data_collection $pagerank_name $pagerank_prepare $pagerank_run 
+# start_data_collection $pagerank_name $pagerank_prepare $pagerank_run 
 
 # # run svm -- takes too long
 # start_data_collection $svm_name $svm_prepare $svm_run 
@@ -252,7 +252,7 @@ start_data_collection $pagerank_name $pagerank_prepare $pagerank_run
 start_data_collection $wordcount_name $wordcount_prepare $wordcount_run 
 
 # run rf
-start_data_collection $rf_name $rf_prepare $rf_run
+# start_data_collection $rf_name $rf_prepare $rf_run
 
 original_code_stats_file=''
 if [ ! -z "${should_run_original_code}" ]
