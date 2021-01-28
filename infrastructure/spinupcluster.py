@@ -6,7 +6,7 @@ import time
 from utils import add_hosts_entries, write_slaves_file_on_master, remove_hosts_entry, \
  run_hadoop, modify_bashrc_runner, modify_capstone_worker_configs_runner, update_capstone_repo, modify_spark_conf_runner, try_ssh, \
      modify_capstone_original_code_slaves_runner, modify_hibench_conf_runner, run_data_collection, start_monitoring, modify_num_iters_runner, \
-         write_hadoop_configs
+         write_hadoop_configs, add_prometheus_conf_orchestrator
 import logging
 import sys
 import multiprocessing as mp
@@ -256,6 +256,26 @@ logger.info("Modified runner config.py and servers in detect_anomaly.py")
 modify_spark_conf_runner(runner_droplet.private_ip_address, len(worker_droplets), args.workload_scale)
 modify_hibench_conf_runner(runner_droplet.private_ip_address, args.workload_scale)
 logger.info("Modified runner spark.conf and hibench.conf")
+
+# -------------------------- Prometheus Setup -----------------------------------------
+
+vm_ips = []
+
+if master_droplet.private_ip_address is not None:
+    vm_ips.append(master_droplet.private_ip_address)
+
+if runner_droplet.private_ip_address is not None:
+    vm_ips.append(runner_droplet.private_ip_address)
+
+for worker in worker_droplets:
+    vm_ips.append(worker.private_ip_address)
+
+add_prometheus_conf_orchestrator(vm_ips, name_suffix)
+logger.info("Modified prometheus config on orchestrator VM")
+os.system("sudo service prometheus restart")
+logger.info("Prometheus restarted")
+
+# -------------------------- Data Collection ------------------------------------------
 
 # Start data collection script
 if args.start_data_collection is not None:
