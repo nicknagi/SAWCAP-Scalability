@@ -2,6 +2,7 @@ import os
 import paramiko
 import logging
 import sys
+from ssh_utils import custom_exec_command
 
 username = "root"
 port = 22
@@ -66,9 +67,8 @@ def remove_hosts_entry(hostname, private_ip):
 def write_slaves_file_on_master(contents, private_ip):
     write_file_via_sftp(private_ip, "/usr/local/hadoop/etc/hadoop/slaves", contents)
 
-def _log_ssh_output(stdout, stderr):
-    logger.debug(stdout.read().decode())
-    logger.debug(stderr.read().decode())
+def _log_ssh_output(output):
+    logger.debug(output)
 
 def run_hadoop(master_private_ip):
     ssh = paramiko.SSHClient()
@@ -76,12 +76,12 @@ def run_hadoop(master_private_ip):
     ssh.connect(hostname=master_private_ip, username='ubuntu', key_filename='/home/ubuntu/.ssh/id_rsa')
 
     logger.debug("\n\n Output from starting Hadoop: \n")
-    _, out, err = ssh.exec_command("/usr/local/hadoop/bin/hdfs namenode -format")
-    _log_ssh_output(out, err)
-    _, out, err = ssh.exec_command("/usr/local/hadoop/sbin/start-dfs.sh && /usr/local/hadoop/sbin/start-yarn.sh")
-    _log_ssh_output(out, err)
-    _, out, err = ssh.exec_command("/usr/local/hadoop/sbin/mr-jobhistory-daemon.sh start historyserver")
-    _log_ssh_output(out, err)
+    out = custom_exec_command(ssh, "/usr/local/hadoop/bin/hdfs namenode -format", 60)
+    _log_ssh_output(out)
+    out = custom_exec_command(ssh, "/usr/local/hadoop/sbin/start-dfs.sh && /usr/local/hadoop/sbin/start-yarn.sh", 60)
+    _log_ssh_output(out)
+    out = custom_exec_command(ssh, "/usr/local/hadoop/sbin/mr-jobhistory-daemon.sh start historyserver", 60)
+    _log_ssh_output(out)
     logger.debug("\n\n")
     ssh.close()
 
@@ -137,8 +137,8 @@ def update_capstone_repo(private_ip):
     ssh.connect(hostname=private_ip, username='ubuntu', key_filename='/home/ubuntu/.ssh/id_rsa')
 
     logger.debug("\n Output From Updating Github Repo: \n")
-    _, out, err = ssh.exec_command(f"cd {path} && git stash && git checkout main && git pull")
-    _log_ssh_output(out, err)
+    stdout = custom_exec_command(ssh, f"cd {path} && git stash && git checkout main && git pull", 10)
+    _log_ssh_output(stdout)
 
 def start_monitoring(worker_private_ip, interval):
     ssh = paramiko.SSHClient()
@@ -159,8 +159,8 @@ def stop_monitoring(worker_private_ip):
     ssh.connect(hostname=worker_private_ip, username='ubuntu', key_filename='/home/ubuntu/.ssh/id_rsa')
 
     logger.info(f"Stopping monitoring on worker ip: {worker_private_ip}")
-    _, out, err = ssh.exec_command('ps aux | grep "/usr/bin/bash monitor.sh *" | awk \'{print $2}\' | xargs kill -9')
-    _log_ssh_output(out, err)
+    out = custom_exec_command(ssh, 'ps aux | grep "/usr/bin/bash monitor.sh *" | awk \'{print $2}\' | xargs kill -9', 10)
+    _log_ssh_output(out)
 
     ssh.close()
 
@@ -243,8 +243,8 @@ def run_data_collection(runner_private_ip):
     ssh.connect(hostname=runner_private_ip, username='ubuntu', key_filename='/home/ubuntu/.ssh/id_rsa')
 
     logger.info(f"Starting data collection on runner: {runner_private_ip}")
-    _, out, err = ssh.exec_command(command)
-    _log_ssh_output(out, err)
+    out = custom_exec_command(ssh, command, 10)
+    _log_ssh_output(out)
 
     ssh.close()
 
