@@ -116,15 +116,34 @@ def wait_until_droplet_ready(droplet):
 
     logger.debug(f"{droplet.name} Ready!")
 
+# Function to add tag to droplet, repeatedly tries until done
+def add_tag_to_droplet(tag_name, droplet):
+    tag_done = False
+    while(tag_done is False):
+        tag = digitalocean.Tag(token=token, name=tag_name)
+        tag.add_droplets([droplet.id])
+        time.sleep(1)
+
+        droplet.load()
+        if (tag_name in droplet.tags):
+            tag_done = True
+            logger.debug(f"Tag {tag_name} added succesfully to {droplet.name}")
+        else:
+            logger.debug(f"Tag {tag_name} not added succesfully to {droplet.name}, trying again")
+
 # -----------------------------  Create all the droplets ---------------------------------------------
 
 
 runner_droplet = create_droplet(runner_name, RUNNER_SNAPSHOT_ID, RUNNER_SIZE)
+logger.info(f"Requested creation of {runner_droplet.name}")
 
 master_droplet = create_droplet(master_name, MASTER_SNAPSHOT_ID, MASTER_SIZE)
+logger.info(f"Requested creation of {master_droplet.name}")
+
 
 worker_droplets = []
 for worker_name in worker_names:
+    logger.info(f"Requested creation of {worker_name}")
     worker_droplets.append(create_droplet(
         worker_name, WORKER_SNAPSHOT_ID, WORKER_SIZE))
 
@@ -135,8 +154,7 @@ wait_until_droplet_ready(master_droplet)
 logger.info("Master has been spun up")
 
 # Add tag to master
-tag = digitalocean.Tag(token=token, name="hadoop-debug")
-tag.add_droplets([master_droplet.id])
+add_tag_to_droplet("hadoop-debug", master_droplet)
 
 # Refresh data about droplets
 master_droplet.load()
@@ -175,19 +193,13 @@ write_hadoop_configs(args.workload_scale, master_droplet.private_ip_address)
 logger.info("Modified master Hadoop configs")
 
 # ---------------------------- Modify Worker Files ---------------------------------------------------
-
-
 def setup_worker(worker_droplet):
-    logger.info("Starting to wait for workers to spin up")
+    logger.info(f"Starting to wait for worker {worker_droplet.name} to spin up")
     wait_until_droplet_ready(worker_droplet)
     logger.info(f"Worker {worker_droplet.name} has been spun up")
-
+    
     # Add tag to workers
-    tag = digitalocean.Tag(token=token, name="hadoop-debug")
-    tag.add_droplets([worker_droplet.id])
-
-    # Refresh worker droplet data
-    worker_droplet.load()
+    add_tag_to_droplet("hadoop-debug", worker_droplet)
 
     # Modify worker /etc/hosts
     remove_hosts_entry(worker_droplet.name, worker_droplet.private_ip_address)
@@ -206,8 +218,13 @@ def setup_worker(worker_droplet):
 
 num_workers = 3
 # Setup all workers
-with mp.Pool(num_workers) as pool:
+# Weird bug fix as per issue: https://bugs.python.org/issue35629
+import contextlib
+with contextlib.closing(mp.Pool(num_workers)) as pool:
     pool.map(setup_worker, worker_droplets)
+
+# for worker_droplet in worker_droplets:
+#     setup_worker(worker_droplet)
 
 # ---------------------------- Run Hadoop On Master (Which starts workers as well) ---------------------------------------------------
 
@@ -226,8 +243,7 @@ logger.info("Runner has been spun up")
 runner_droplet.load()
 
 # Add tag to runner
-tag = digitalocean.Tag(token=token, name="hadoop-debug")
-tag.add_droplets([runner_droplet.id])
+add_tag_to_droplet("hadoop-debug", runner_droplet)
 
 # Modify worker /etc/hosts
 lines_to_add_runner = [f"{master_droplet.private_ip_address} spark-master\n"]

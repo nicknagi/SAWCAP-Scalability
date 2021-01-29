@@ -7,6 +7,8 @@ from utils import remove_prometheus_conf_orchestrator
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument("--uniqueid", type=str,
                     help="id of the cluster used as suffix", required=True)
+parser.add_argument("--leave_runner", 
+                    help="destroy all VMs except runner; useful for debugging", action='store_true')
 args = parser.parse_args()
 
 token = os.getenv("DIGITALOCEAN_ACCESS_TOKEN")
@@ -23,7 +25,10 @@ name_suffix = args.uniqueid
 master_name = "hadoop-master-" + name_suffix
 runner_name = "runner-" + name_suffix
 worker_names = [f"hadoop-worker-{name_suffix}-{x:02d}" for x in range(1, 10000+1)]
-names = [master_name, runner_name, *worker_names]
+droplets_to_remove = [master_name, runner_name, *worker_names]
+
+if (args.leave_runner):
+    droplets_to_remove.remove(runner_name)
 
 # remove prometheus config
 remove_prometheus_conf_orchestrator(name_suffix)
@@ -33,7 +38,7 @@ print("Removed prometheus configuration")
 manager = digitalocean.Manager(token=token)
 my_droplets = manager.get_all_droplets()
 for droplet in my_droplets:
-    if droplet.name in names:
+    if droplet.name in droplets_to_remove:
         droplet.destroy()
         print(f"Droplet {droplet.name} destroyed")
 
