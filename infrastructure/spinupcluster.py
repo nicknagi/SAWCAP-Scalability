@@ -6,7 +6,7 @@ import time
 from utils import add_hosts_entries, write_slaves_file_on_master, remove_hosts_entry, \
  run_hadoop, modify_bashrc_runner, modify_capstone_worker_configs_runner, update_capstone_repo, modify_spark_conf_runner, try_ssh, \
      modify_capstone_original_code_slaves_runner, modify_hibench_conf_runner, run_data_collection, start_monitoring, modify_num_iters_runner, \
-         write_hadoop_configs, add_prometheus_conf_orchestrator
+         write_hadoop_configs, add_prometheus_conf_orchestrator, run_sawcap_monitoring
 import logging
 import sys
 import multiprocessing as mp
@@ -30,6 +30,8 @@ parser.add_argument("--uniqueid", type=str,
                     help="id of the cluster used as suffix")
 parser.add_argument("--workload_scale", type=str,
                     help="param to be set for workload size in hibench.conf", default="large")
+parser.add_argument("--git_branch", type=str,
+                    help="branch to be cloned on all machines in cluster", default="main")
 parser.add_argument("--start_data_collection", help="start data collection script on cluster, also starts monitoring", type=str)
 args = parser.parse_args()
 
@@ -209,7 +211,7 @@ def setup_worker(worker_droplet):
     logger.info(f"Modified {worker_droplet.name} /etc/hosts")
 
     # Update capstone repo
-    update_capstone_repo(worker_droplet.private_ip_address)
+    update_capstone_repo(worker_droplet.private_ip_address, args.git_branch)
     logger.info(f"Updated {worker_droplet.name} capstone repo")
 
     # Modify Hadoop Configs
@@ -259,7 +261,7 @@ modify_bashrc_runner(runner_droplet.private_ip_address)
 logger.info("Modified runner .bashrc")
 
 # Update Capstone Repo
-update_capstone_repo(runner_droplet.private_ip_address)
+update_capstone_repo(runner_droplet.private_ip_address, args.git_branch)
 logger.info(f"Updated runner capstone repo")
 
 # Modify capstone files
@@ -272,6 +274,10 @@ logger.info("Modified runner config.py and servers in detect_anomaly.py")
 modify_spark_conf_runner(runner_droplet.private_ip_address, len(worker_droplets), args.workload_scale)
 modify_hibench_conf_runner(runner_droplet.private_ip_address, args.workload_scale)
 logger.info("Modified runner spark.conf and hibench.conf")
+
+# Start sawcap resources monitoring
+run_sawcap_monitoring(runner_droplet.private_ip_address)
+logger.info("Started sawcap resource monitoring script")
 
 # -------------------------- Prometheus Setup -----------------------------------------
 

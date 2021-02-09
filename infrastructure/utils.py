@@ -85,6 +85,17 @@ def run_hadoop(master_private_ip):
     logger.debug("\n\n")
     ssh.close()
 
+def run_sawcap_monitoring(runner_private_ip):
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect(hostname=runner_private_ip, username='root', key_filename='/home/ubuntu/.ssh/orchestrator')
+
+    logger.debug("\n\n Output from starting resource consumption monitoring: \n")
+    out = custom_exec_command(ssh, "cd /home/ubuntu/capstone/scripts && bash monitor_sawcap_resources.sh", 60)
+    _log_ssh_output(out)
+
+    logger.debug("\n\n")
+    ssh.close()
 
 # Function dedicated to exporting SPARK_LOCAL_IP variable in bash rc
 def modify_bashrc_runner(runner_private_ip):
@@ -129,7 +140,7 @@ def modify_capstone_original_code_slaves_runner(runner_private_ip, workers):
     
     write_file_via_sftp(runner_private_ip, filename, contents)
 
-def update_capstone_repo(private_ip):
+def update_capstone_repo(private_ip, branch_name):
     path = "/home/ubuntu/capstone"
 
     ssh = paramiko.SSHClient()
@@ -137,7 +148,7 @@ def update_capstone_repo(private_ip):
     ssh.connect(hostname=private_ip, username='ubuntu', key_filename='/home/ubuntu/.ssh/id_rsa')
 
     logger.debug("\n Output From Updating Github Repo: \n")
-    stdout = custom_exec_command(ssh, f"cd {path} && git stash && git checkout main && git pull", 10)
+    stdout = custom_exec_command(ssh, f"cd {path} && git stash && git pull && git checkout {branch_name}", 10)
     _log_ssh_output(stdout)
 
 def start_monitoring(worker_private_ip, interval):

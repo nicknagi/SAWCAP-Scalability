@@ -1,6 +1,6 @@
 import sys
 import psutil
-from metrics_publisher import MetricsPublisher
+from metrics.metrics_publisher import MetricsPublisher
 
 PYTHON_SCRIPT_NAME_TO_MONITOR = "/home/ubuntu/capstone/sawcap/sawcap.py"
 
@@ -15,14 +15,14 @@ def get_process_pid():
 
 # Given a chunk of nethogs data, gets resource usage data i.e. network, cpu and memory
 def get_resource_usage_data(nethogs_data):
-    data = {"cpu": 0, "mem": 0, "download": 0, "upload": 0}
+    data = {"cpu": 0.0, "mem": 0.0, "download": 0.0, "upload": 0.0}
     procs_under_consideration = []
 
     main_pid = get_process_pid()
     main_proccess = None if main_pid == -1 else psutil.Process(main_pid)
 
     if main_proccess is None:
-        return
+        return data
 
     procs_under_consideration.append(main_pid)
     children = main_proccess.children(recursive=True)
