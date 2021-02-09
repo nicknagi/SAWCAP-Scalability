@@ -56,9 +56,12 @@ metrics_publisher = MetricsPublisher()
 while True:
     chunk = []
     for line in sys.stdin:
-        if line == "Refreshing:\n":           
-            resource_consumption = get_resource_usage_data(chunk)
-            metrics_publisher.publish_arbitrary_metrics(resource_consumption, "sawcap_resource_consumption")
+        if line == "Refreshing:\n":
+            try:
+                resource_consumption = get_resource_usage_data(chunk)
+                metrics_publisher.publish_arbitrary_metrics(resource_consumption, "sawcap_resource_consumption")
+            except psutil.NoSuchProcess as e:
+                pass
             chunk = []
         else:
             chunk.append(line)
