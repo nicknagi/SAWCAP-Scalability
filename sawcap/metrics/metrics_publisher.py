@@ -53,7 +53,7 @@ class MetricsPublisher:
 
     # fields_data - dict with data to be inserted into <measurement>
     def publish_arbitrary_metrics(self, fields_data, measurement):
-                json_body = [
+        json_body = [
             {
                 "measurement": measurement,
                 "tags": {
