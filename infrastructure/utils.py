@@ -148,7 +148,7 @@ def update_capstone_repo(private_ip, branch_name):
     ssh.connect(hostname=private_ip, username='ubuntu', key_filename='/home/ubuntu/.ssh/id_rsa')
 
     logger.debug("\n Output From Updating Github Repo: \n")
-    stdout = custom_exec_command(ssh, f"cd {path} && git stash && git pull && git checkout {branch_name}", 10)
+    stdout = custom_exec_command(ssh, f"cd {path} && git stash && git checkout main && git pull && git checkout {branch_name}", 10)
     _log_ssh_output(stdout)
 
 def start_monitoring(worker_private_ip, interval):
