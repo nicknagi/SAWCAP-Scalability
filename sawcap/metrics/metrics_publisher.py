@@ -51,4 +51,17 @@ class MetricsPublisher:
         ]
         self.client.write_points(json_body)
 
+    # fields_data - dict with data to be inserted into <measurement>
+    def publish_arbitrary_metrics(self, fields_data, measurement):
+                json_body = [
+            {
+                "measurement": measurement,
+                "tags": {
+                    "host": self.hostname
+                },
+                "fields": fields_data
+            }
+        ]
+        self.client.write_points(json_body)
+
 
