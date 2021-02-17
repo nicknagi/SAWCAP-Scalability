@@ -31,6 +31,7 @@ parser.add_argument("--uniqueid", type=str,
 parser.add_argument("--workload_scale", type=str,
                     help="param to be set for workload size in hibench.conf", default="large")
 parser.add_argument("--start_data_collection", help="start data collection script on cluster, also starts monitoring", type=str)
+parser.add_argument("-e", "--extend", action="store_true", help="Extend an existing cluster instead of creating a new cluster")
 args = parser.parse_args()
 
 num_workers = args.numworkers
@@ -133,19 +134,43 @@ def add_tag_to_droplet(tag_name, droplet):
 
 # -----------------------------  Create all the droplets ---------------------------------------------
 
-
-runner_droplet = create_droplet(runner_name, RUNNER_SNAPSHOT_ID, RUNNER_SIZE)
-logger.info(f"Requested creation of {runner_droplet.name}")
-
-master_droplet = create_droplet(master_name, MASTER_SNAPSHOT_ID, MASTER_SIZE)
-logger.info(f"Requested creation of {master_droplet.name}")
-
-
 worker_droplets = []
-for worker_name in worker_names:
-    logger.info(f"Requested creation of {worker_name}")
-    worker_droplets.append(create_droplet(
-        worker_name, WORKER_SNAPSHOT_ID, WORKER_SIZE))
+
+if args.extend:
+    my_droplets = manager.get_all_droplets()
+    my_droplet_names = [d.name for d in my_droplets]
+    
+    try:
+        master_droplet = my_droplets[my_droplet_names.index(master_name)]
+        runnner_droplet = my_droplets[my_droplet_names.index(runner_name)]
+    except ValueError as e:
+        logger.error("No such cluster is found.")
+        sys.exit(1)
+
+    for i in range(1, 10000+1):
+        worker_name = f"hadoop-worker-{name_suffix}-{i:02d}"
+        try:
+            droplet = my_droplets[my_droplet_names.index(worker_name)]
+        except ValueError as e:
+            break;
+        worker_droplets.append(droplet)
+
+else:
+    runner_droplet = create_droplet(runner_name, RUNNER_SNAPSHOT_ID, RUNNER_SIZE)
+    logger.info(f"Requested creation of {runner_droplet.name}")
+
+    master_droplet = create_droplet(master_name, MASTER_SNAPSHOT_ID, MASTER_SIZE)
+    logger.info(f"Requested creation of {master_droplet.name}")
+
+    for worker_name in worker_names:
+        logger.info(f"Requested creation of {worker_name}")
+        worker_droplets.append(create_droplet(
+            worker_name, WORKER_SNAPSHOT_ID, WORKER_SIZE))
+
+print(master_droplet)
+print(runner_droplet)
+print(worker_droplet)
+sys.exit(0)
 
 # ---------------------------- Wait For Master To Complete ---------------------------------------------------
 
