@@ -154,10 +154,10 @@ if args.extend:
         try:
             droplet = my_droplets[my_droplet_names.index(worker_name)]
         except ValueError as e:
-            break;
+            break
         existing_worker_droplets.append(droplet)
         all_worker_droplets.append(droplet)
-    existing_num_workers -= 1;
+    existing_num_workers -= 1
     logger.info(f"Existing Master: {master_droplet}")
     logger.info(f"Existing Runner: {runner_droplet}")
     logger.info(f"Existing Worker #: {existing_num_workers}")
