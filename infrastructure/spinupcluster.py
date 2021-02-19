@@ -237,7 +237,7 @@ def setup_worker(worker_droplet, existing):
         # Modify worker /etc/hosts
         remove_hosts_entry(worker_droplet.name, worker_droplet.private_ip_address)
         lines_to_add_worker = [
-            f"{master_droplet.private_ip_address} spark-master\n", *worker_hostnames_ip_lines]
+            f"{master_droplet.private_ip_address} spark-master\n", *new_worker_hostnames_ip_lines]
         add_hosts_entries(lines_to_add_worker, worker_droplet.private_ip_address)
         logger.info(f"Modified {worker_droplet.name} /etc/hosts")
 
