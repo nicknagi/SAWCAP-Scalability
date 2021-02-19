@@ -132,6 +132,7 @@ def add_tag_to_droplet(tag_name, droplet):
 
 new_worker_droplets = []
 existing_worker_droplets = []
+all_worker_droplets = []
 new_num_workers = args.numworkers
 existing_num_workers = 0
 master_name = "hadoop-master-" + name_suffix
@@ -155,6 +156,7 @@ if args.extend:
         except ValueError as e:
             break;
         existing_worker_droplets.append(droplet)
+        all_worker_droplets.append(droplet)
     existing_num_workers -= 1;
     logger.info(f"Existing Master: {master_droplet}")
     logger.info(f"Existing Runner: {runner_droplet}")
@@ -175,6 +177,7 @@ for worker_name in worker_names:
     logger.info(f"Requested creation of {worker_name}")
     d = create_droplet(worker_name, WORKER_SNAPSHOT_ID, WORKER_SIZE)
     new_worker_droplets.append(d)
+    all_worker_droplets.append(d)
 
 # ---------------------------- Wait For Master To Complete ---------------------------------------------------
 
@@ -301,13 +304,13 @@ write_hadoop_configs(args.workload_scale, runner_droplet.private_ip_address)
 logger.info("Modified runner Hadoop Configs")
 
 # Modify capstone files
-workers = [worker_droplet.private_ip_address for worker_droplet in worker_droplets]
+workers = [worker_droplet.private_ip_address for worker_droplet in all_worker_droplets]
 modify_capstone_worker_configs_runner(runner_droplet.private_ip_address, workers)
 modify_capstone_original_code_slaves_runner(runner_droplet.private_ip_address, workers)
 logger.info("Modified runner config.py and servers in detect_anomaly.py")
 
 # Modify spark.conf with num_executors = num_workers and hibench.conf with workload size
-modify_spark_conf_runner(runner_droplet.private_ip_address, len(worker_droplets), args.workload_scale)
+modify_spark_conf_runner(runner_droplet.private_ip_address, len(all_worker_droplets), args.workload_scale)
 modify_hibench_conf_runner(runner_droplet.private_ip_address, args.workload_scale)
 logger.info("Modified runner spark.conf and hibench.conf")
 
@@ -334,9 +337,7 @@ logger.info("Prometheus restarted")
 
 # Start data collection script
 if args.start_data_collection is not None:
-    for worker_droplet in existing_worker_droplets:
-        start_monitoring(worker_droplet.private_ip_address, 1)
-    for worker_droplet in new_worker_droplets:
+    for worker_droplet in all_worker_droplets:
         start_monitoring(worker_droplet.private_ip_address, 1)
 
     time.sleep(5)
