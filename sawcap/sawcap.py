@@ -11,6 +11,7 @@ from config import INTERVAL, WORKERS, LOG_LEVEL, ENABLE_STATS, DATA_DIR, STATS_F
 from data_collector.collector import DataCollector
 from entities.database import Database
 from entities.snapshot import Snapshot
+from metrics.latency_decorator import publish_latency
 from metrics.metrics_publisher import MetricsPublisher
 from predictor.predictor import Predictor
 from utils import SMAPE
@@ -79,6 +80,7 @@ class Sawcap:
             # Update ML model for current phase, if possible
             self.predictor.update_ml_model(self.curr_phase)
 
+    @publish_latency("data_collection_latency")
     def _get_new_snapshot(self):
         stacktrace_functions, resource_data = self.data_collector.get_data_from_workers()
         snapshot = Snapshot(resource_data, stacktrace_functions)
