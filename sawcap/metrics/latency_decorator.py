@@ -9,9 +9,10 @@ def publish_latency(measurement_name):
         @functools.wraps(func)
         def run_and_time_func(*args, **kwargs):
             start = time.time()
-            func(*args, **kwargs)
+            result = func(*args, **kwargs)
             end = time.time()
             MetricsPublisher().publish_arbitrary_metrics({"latency": end-start}, measurement_name)
+            return result
 
         return run_and_time_func
 
