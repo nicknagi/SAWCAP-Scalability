@@ -1,8 +1,11 @@
-from sklearn import linear_model
+import logging
+
 import numpy as np
+from sklearn import linear_model
+
 from config import BATCH_SIZE, NUM_RESOURCES
 from utils import MAPE
-import logging
+
 
 class Predictor:
 
@@ -16,7 +19,7 @@ class Predictor:
         # if no phase available
         if cur_phase == "":
             return [0] * NUM_RESOURCES, phase_exists
-        
+
         # load prev1, prev2 and curr from database
         self._get_triplet_values()
 
@@ -30,12 +33,12 @@ class Predictor:
             return self.prev1_resource, phase_exists
         else:
             return self._prediction_helper(cur_phase), phase_exists
-    
+
     def update_ml_model(self, phase_string):
         # do not build model for an idle phase (no trace string) or if phase doesn't exist
         if phase_string == "" or not self.database.check_phase_exists(phase_string):
             return
-        
+
         if len(self.database.get_data_from_phase(phase_string)) == BATCH_SIZE:
             # load prev1, prev2 and curr from database
             self._get_triplet_values()
@@ -52,7 +55,7 @@ class Predictor:
             return
 
         anomaly_confidence_state = self.anomaly_confidence_state
-        
+
         if phase_exists == False:
             # use simple heuristic of low CPU utilization for unseen phases
             if curr_resources[0] < 10:
@@ -115,7 +118,7 @@ class Predictor:
             return self._predict_naive(cur_phase)
         elif self.algo == "lasso":
             return self._predict_lasso(cur_phase)
-    
+
     def _add_models(self, cur_phase):
         # intiialize LASSO models with the number of resources
         # print("*** Number of resources during model init ", len(cur_res))

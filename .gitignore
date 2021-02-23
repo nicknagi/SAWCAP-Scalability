@@ -5,3 +5,4 @@ phase_db_lasso
 .vscode/*
 __pycache__/
 .DS_Store
+.idea

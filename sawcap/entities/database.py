@@ -18,17 +18,18 @@ Structure of the database dictionary:
     }
 '''
 
+import logging
+import os
+import pickle
+
 from config import NUM_RESOURCES, DATA_DIR, ALGO
 from entities.snapshot import Snapshot
-import pickle
-import sys
-import os
-import logging
+
 
 class Database:
     def __init__(self):
         self._database = dict()
-        self._database["triplets"] = [Snapshot([0]*NUM_RESOURCES, set()) for _ in range(3)]
+        self._database["triplets"] = [Snapshot([0] * NUM_RESOURCES, set()) for _ in range(3)]
         self._database["phases"] = dict()
 
     def add_new_snapshot(self, snapshot):
@@ -64,13 +65,13 @@ class Database:
         if phase_string in self._database["phases"]:
             return True
         return False
-    
+
     def get_curr_resource(self):
         return self._database["triplets"][2].resource_data
-    
+
     def get_prev1_resource(self):
         return self._database["triplets"][1].resource_data
-    
+
     def get_prev2_resource(self):
         return self._database["triplets"][0].resource_data
 

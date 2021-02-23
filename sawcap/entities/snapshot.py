@@ -15,7 +15,7 @@ class Snapshot:
 
         divisor = max(len(self.stacktrace_data), len(
             other_snapshot_collection.stacktrace_data))
-        assert(divisor != 0)
+        assert (divisor != 0)
         similarity = len(common_stacktraces) / float(divisor)
 
         return similarity

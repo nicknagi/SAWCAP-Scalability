@@ -1,8 +1,8 @@
-import numpy as np
-import matplotlib.pyplot as plt
-import os
-import pandas as pd
 import argparse
+import os
+
+import matplotlib.pyplot as plt
+import pandas as pd
 
 
 def parse_stats_file(file, stat_names):
@@ -35,10 +35,10 @@ def parse_stats_file(file, stat_names):
     if current_workload_data != {}:
         workload_dictionary[current_workload_name].append(current_workload_data)
         current_workload_data = {}
-    
+
     lengths = [len(workload) for workload in workload_dictionary.values()]
     number_of_workloads = lengths[0]
-    assert(len(set(lengths)) == 1)
+    assert (len(set(lengths)) == 1)
 
     return workload_dictionary, number_of_workloads
 
@@ -47,7 +47,7 @@ def find_averages_per_workload_type(workload_dictionary, num_workloads, stat_nam
     averages = {}
     for stat_name in stat_names:
         averages[stat_name] = {}
-    
+
     for worload_name, worload_stats in workload_dictionary.items():
         for stat_name in stat_names:
             averages[stat_name][worload_name] = 0
@@ -55,8 +55,8 @@ def find_averages_per_workload_type(workload_dictionary, num_workloads, stat_nam
         for stat_num, stat in enumerate(worload_stats):
             for stat_name in stat_names:
                 averages[stat_name][worload_name] += stat[stat_name]
-                if stat_num == (num_workloads-1):
-                    averages[stat_name][worload_name] = averages[stat_name][worload_name]/num_workloads
+                if stat_num == (num_workloads - 1):
+                    averages[stat_name][worload_name] = averages[stat_name][worload_name] / num_workloads
 
     return averages
 
@@ -72,7 +72,7 @@ def plot_data(array_of_stats_for_algos, stat_names, algos, save_path):
                 if worload_name not in merged_stats[stat_name]:
                     merged_stats[stat_name][worload_name] = []
                 merged_stats[stat_name][worload_name].append(worload_stat)
-    
+
     for stat_name in stat_names:
         stat_frame = pd.DataFrame(merged_stats[stat_name]).T
         stat_frame.columns = algos
@@ -97,28 +97,28 @@ def plot_data(array_of_stats_for_algos, stat_names, algos, save_path):
 
 if __name__ == '__main__':
 
-        parser = argparse.ArgumentParser(
-                description='Plot Stats. Usage example: python graph_comparison.py --dir_name ~/Desktop/capstone/sawcap --stats CPU,MEM --stat_files sawcap_stats.txt --algos lasso --save_path ~/Desktop/capstone/sawcap/my_unique_id_')
-        parser.add_argument('--dir_name', required=True,
-                                                help='Directory name with all files')
-        parser.add_argument('--stats', required=True,
-                                                help='List of stats to compare, separated by a comma without space')
-        parser.add_argument('--stat_files', required=True,
-                                                help='List of data files to compare, separated by a comma without space')
-        parser.add_argument('--algos', required=True,
-                                                help='Algo names associated with stat files, , separated by a comma without space')
-        parser.add_argument('--save_path', help='Save path for graphs')
-        args = parser.parse_args()
+    parser = argparse.ArgumentParser(
+        description='Plot Stats. Usage example: python graph_comparison.py --dir_name ~/Desktop/capstone/sawcap --stats CPU,MEM --stat_files sawcap_stats.txt --algos lasso --save_path ~/Desktop/capstone/sawcap/my_unique_id_')
+    parser.add_argument('--dir_name', required=True,
+                        help='Directory name with all files')
+    parser.add_argument('--stats', required=True,
+                        help='List of stats to compare, separated by a comma without space')
+    parser.add_argument('--stat_files', required=True,
+                        help='List of data files to compare, separated by a comma without space')
+    parser.add_argument('--algos', required=True,
+                        help='Algo names associated with stat files, , separated by a comma without space')
+    parser.add_argument('--save_path', help='Save path for graphs')
+    args = parser.parse_args()
 
-        os.chdir(args.dir_name)
-        stat_names = args.stats.split(',')
-        stat_files = args.stat_files.split(',')
-        algos = args.algos.split(',')
-        array_of_stats_for_algos = []
+    os.chdir(args.dir_name)
+    stat_names = args.stats.split(',')
+    stat_files = args.stat_files.split(',')
+    algos = args.algos.split(',')
+    array_of_stats_for_algos = []
 
-        for file in stat_files:
-            workload_dictionary, num_workloads = parse_stats_file(file, stat_names)
-            averages = find_averages_per_workload_type(workload_dictionary, num_workloads, stat_names)
-            array_of_stats_for_algos .append(averages)
+    for file in stat_files:
+        workload_dictionary, num_workloads = parse_stats_file(file, stat_names)
+        averages = find_averages_per_workload_type(workload_dictionary, num_workloads, stat_names)
+        array_of_stats_for_algos.append(averages)
 
-        plot_data(array_of_stats_for_algos, stat_names, algos, args.save_path)
+    plot_data(array_of_stats_for_algos, stat_names, algos, args.save_path)
