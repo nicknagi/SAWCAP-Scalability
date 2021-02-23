@@ -5,6 +5,7 @@ pkill -ef "detect_anomaly.py "
 pkill -ef "bash /usr/local/HiBench/bin/workloads*"
 pkill -ef "bash run_workloads_in_background.sh*"
 pkill -ef "bash run_sawcap_on_workloads.sh*"
+pkill -ef "bash monitor_sawcap_resources.sh*"
 
 sleep 2
 ps aux | grep bash
