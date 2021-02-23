@@ -1,5 +1,6 @@
-import os
 import argparse
+
+
 # Import smtplib for the actual sending function
 
 def send_slack_message(text, files):
@@ -28,6 +29,7 @@ def send_slack_message(text, files):
                 assert e.response["error"]  # str like 'invalid_auth', 'channel_not_found'
                 print(f"Got an error: {e.response['error']}")
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Slacking channel')
     parser.add_argument('--text', help='Text')
@@ -37,5 +39,5 @@ if __name__ == '__main__':
     if args.files != None:
         files = args.files.split(',')
     print(files)
-    
+
     send_slack_message(args.text, files)

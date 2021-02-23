@@ -1,20 +1,19 @@
 # The entrypoint for the sawcap project - this should be run on the runner i.e the node that monitors the cluster
 # monitor.sh will be run on each of the workers
+import logging
+import sys
+from signal import signal, SIGINT, SIGTERM
+from time import sleep
+
+from characterizer.characterizer import Characterizer
 from config import ALGO
-from entities.database import Database
+from config import INTERVAL, WORKERS, LOG_LEVEL, ENABLE_STATS, DATA_DIR, STATS_FILE, ANOMALY_DETECTION_ENABLED
 from data_collector.collector import DataCollector
+from entities.database import Database
+from entities.snapshot import Snapshot
+from metrics.metrics_publisher import MetricsPublisher
 from predictor.predictor import Predictor
 from utils import SMAPE
-from entities.snapshot import Snapshot
-from time import sleep
-from characterizer.characterizer import Characterizer
-from config import INTERVAL, WORKERS, LOG_LEVEL, ENABLE_STATS, DATA_DIR, STATS_FILE, ANOMALY_DETECTION_ENABLED
-import logging
-from signal import signal, SIGINT, SIGTERM
-from metrics.metrics_publisher import MetricsPublisher
-
-import numpy as np
-import sys
 
 logging.basicConfig(format='sawcap.py: %(asctime)s - %(message)s',
                     datefmt='%d-%b-%y %H:%M:%S', level=LOG_LEVEL)
@@ -24,6 +23,7 @@ stats = {
     "actual_data": [],
     "predicted_data": []
 }
+
 
 class Sawcap:
     def __init__(self):
@@ -43,9 +43,9 @@ class Sawcap:
 
     def run(self):
         while True:
-            self._get_new_snapshot() # prev1 (prev 2 is last prev1)
+            self._get_new_snapshot()  # prev1 (prev 2 is last prev1)
             sleep(INTERVAL)
-            self._get_new_snapshot() # curr
+            self._get_new_snapshot()  # curr
 
             # Check which phase we are in currently
             self.curr_phase = self.characterizer.get_current_phase()
@@ -63,10 +63,13 @@ class Sawcap:
                 self.metrics_publisher.publish_predictions(actual, predicted)
                 self.metrics_publisher.publish_accuracy(acc_cpu, acc_mem)
 
-            logging.info("Actual: " + str(["{:.2f}".format(a) for a in self.database.get_curr_resource()]) + " Predicted:" + str(["{:.2f}".format(a) for a in predicted]))
+            logging.info(
+                "Actual: " + str(["{:.2f}".format(a) for a in self.database.get_curr_resource()]) + " Predicted:" + str(
+                    ["{:.2f}".format(a) for a in predicted]))
 
             if ANOMALY_DETECTION_ENABLED:
-                anomaly_detected = self.predictor.detect_anomaly(predicted, self.database.get_curr_resource(), self.curr_phase, phase_exists)
+                anomaly_detected = self.predictor.detect_anomaly(predicted, self.database.get_curr_resource(),
+                                                                 self.curr_phase, phase_exists)
                 if anomaly_detected:
                     self.sawcap_exit()
 
@@ -104,26 +107,26 @@ class Sawcap:
         logging.info(stats)
 
     def calculate_errors(self):
-	    logging.info("\n### Accuracy Rates ###")
+        logging.info("\n### Accuracy Rates ###")
 
-	    actual_resources = stats["actual_data"]
-	    predicted_resources = stats["predicted_data"]
+        actual_resources = stats["actual_data"]
+        predicted_resources = stats["predicted_data"]
 
-	    # CPU resource usage accuracy
-	    actual_resources_cpu = [resource[0] for resource in actual_resources]
-	    predicted_resources_cpu = [resource[0] for resource in predicted_resources]
-	    acc_cpu = 100 - SMAPE(actual_resources_cpu, predicted_resources_cpu)
-	    logging.info('CPU Prediction Accuracy: %.3f %%' % (acc_cpu))
+        # CPU resource usage accuracy
+        actual_resources_cpu = [resource[0] for resource in actual_resources]
+        predicted_resources_cpu = [resource[0] for resource in predicted_resources]
+        acc_cpu = 100 - SMAPE(actual_resources_cpu, predicted_resources_cpu)
+        logging.info('CPU Prediction Accuracy: %.3f %%' % (acc_cpu))
 
-	    # Memory usage accuracy
-	    actual_resources_mem = [resource[1] for resource in actual_resources]
-	    predicted_resources_mem = [resource[1] for resource in predicted_resources]
-	    acc_mem = 100 - SMAPE(actual_resources_mem, predicted_resources_mem)
-	    logging.info('MEM Prediction Accuracy: %.3f %%' % (acc_mem))
+        # Memory usage accuracy
+        actual_resources_mem = [resource[1] for resource in actual_resources]
+        predicted_resources_mem = [resource[1] for resource in predicted_resources]
+        acc_mem = 100 - SMAPE(actual_resources_mem, predicted_resources_mem)
+        logging.info('MEM Prediction Accuracy: %.3f %%' % (acc_mem))
 
-	    return acc_cpu, acc_mem
+        return acc_cpu, acc_mem
+
 
 if __name__ == "__main__":
     sawcap = Sawcap()
     sawcap.run()
-
