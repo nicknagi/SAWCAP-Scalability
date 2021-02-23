@@ -1,16 +1,20 @@
 #!/usr/bin/python3
-import digitalocean
 import argparse
-import os
-import time
-from utils import add_hosts_entries, write_slaves_file_on_master, remove_hosts_entry, \
- run_hadoop, modify_bashrc_runner, modify_capstone_worker_configs_runner, update_capstone_repo, modify_spark_conf_runner, try_ssh, \
-     modify_capstone_original_code_slaves_runner, modify_hibench_conf_runner, run_data_collection, start_monitoring, modify_num_iters_runner, \
-         write_hadoop_configs, add_prometheus_conf_orchestrator, run_sawcap_monitoring
 import logging
-import sys
 import multiprocessing as mp
-import random
+import os
+import sys
+import time
+from datetime import timedelta
+
+import digitalocean
+
+from utils import add_hosts_entries, write_slaves_file_on_master, remove_hosts_entry, \
+    run_hadoop, modify_bashrc_runner, modify_capstone_worker_configs_runner, update_capstone_repo, \
+    modify_spark_conf_runner, try_ssh, \
+    modify_capstone_original_code_slaves_runner, modify_hibench_conf_runner, run_data_collection, start_monitoring, \
+    modify_num_iters_runner, \
+    write_hadoop_configs, add_prometheus_conf_orchestrator, run_sawcap_monitoring
 
 # Profiling
 start = time.time()
@@ -32,19 +36,20 @@ parser.add_argument("--workload_scale", type=str,
                     help="param to be set for workload size in hibench.conf", default="large")
 parser.add_argument("--git_branch", type=str,
                     help="branch to be cloned on all machines in cluster", default="main")
-parser.add_argument("--start_data_collection", help="start data collection script on cluster, also starts monitoring", type=str)
+parser.add_argument("--start_data_collection", help="start data collection script on cluster, also starts monitoring",
+                    type=str)
 args = parser.parse_args()
 
 num_workers = args.numworkers
 token = os.getenv("DIGITALOCEAN_ACCESS_TOKEN")
 
 # Set the VM size depending on workload size
-VM_SIZE="s-2vcpu-2gb"
+VM_SIZE = "s-2vcpu-2gb"
 if args.workload_scale == "large":
     VM_SIZE = "s-4vcpu-8gb"
 
 REGION = "tor1"
-WORKER_SNAPSHOT_ID = "77183076" # v3
+WORKER_SNAPSHOT_ID = "77183076"  # v3
 RUNNER_SNAPSHOT_ID = "77183059"
 MASTER_SNAPSHOT_ID = "77183051"
 WORKER_SIZE = VM_SIZE
@@ -55,13 +60,14 @@ name_suffix = str(int(time.time())) if args.uniqueid is None else args.uniqueid
 master_name = "hadoop-master-" + name_suffix
 runner_name = "runner-" + name_suffix
 worker_names = [
-    f"hadoop-worker-{name_suffix}-{x:02d}" for x in range(1, num_workers+1)]
+    f"hadoop-worker-{name_suffix}-{x:02d}" for x in range(1, num_workers + 1)]
 manager = digitalocean.Manager(token=token)
 keys = manager.get_all_sshkeys()
 
 if args.workload_scale not in ["tiny", "small", "large"]:
     print("Invalid workload scale type!")
     sys.exit(1)
+
 
 # -----------------------------  Utility Functions ---------------------------------------------
 
@@ -77,6 +83,7 @@ def create_droplet(name, image, size):
     droplet.create()
     return droplet
 
+
 def droplet_ready(droplet):
     actions = droplet.get_actions()
 
@@ -88,12 +95,14 @@ def droplet_ready(droplet):
 
     return True
 
+
 def can_ssh(droplet):
     try:
         try_ssh(droplet.private_ip_address)
         return True
     except Exception:
         return False
+
 
 def wait_until_droplet_ready(droplet):
     # Do a quick check first otherwise wait longer
@@ -118,10 +127,11 @@ def wait_until_droplet_ready(droplet):
 
     logger.debug(f"{droplet.name} Ready!")
 
+
 # Function to add tag to droplet, repeatedly tries until done
 def add_tag_to_droplet(tag_name, droplet):
     tag_done = False
-    while(tag_done is False):
+    while (tag_done is False):
         tag = digitalocean.Tag(token=token, name=tag_name)
         tag.add_droplets([droplet.id])
         time.sleep(1)
@@ -133,6 +143,7 @@ def add_tag_to_droplet(tag_name, droplet):
         else:
             logger.debug(f"Tag {tag_name} not added succesfully to {droplet.name}, trying again")
 
+
 # -----------------------------  Create all the droplets ---------------------------------------------
 
 
@@ -141,7 +152,6 @@ logger.info(f"Requested creation of {runner_droplet.name}")
 
 master_droplet = create_droplet(master_name, MASTER_SNAPSHOT_ID, MASTER_SIZE)
 logger.info(f"Requested creation of {master_droplet.name}")
-
 
 worker_droplets = []
 for worker_name in worker_names:
@@ -194,12 +204,13 @@ logger.info("Modified master slaves file")
 write_hadoop_configs(args.workload_scale, master_droplet.private_ip_address)
 logger.info("Modified master Hadoop configs")
 
+
 # ---------------------------- Modify Worker Files ---------------------------------------------------
 def setup_worker(worker_droplet):
     logger.info(f"Starting to wait for worker {worker_droplet.name} to spin up")
     wait_until_droplet_ready(worker_droplet)
     logger.info(f"Worker {worker_droplet.name} has been spun up")
-    
+
     # Add tag to workers
     add_tag_to_droplet("hadoop-debug", worker_droplet)
 
@@ -218,10 +229,12 @@ def setup_worker(worker_droplet):
     write_hadoop_configs(args.workload_scale, worker_droplet.private_ip_address)
     logger.info(f"Modified {worker_droplet.name} Hadoop Configs")
 
+
 num_workers = 3
 # Setup all workers
 # Weird bug fix as per issue: https://bugs.python.org/issue35629
 import contextlib
+
 with contextlib.closing(mp.Pool(num_workers)) as pool:
     pool.map(setup_worker, worker_droplets)
 
@@ -309,11 +322,9 @@ if args.start_data_collection is not None:
     modify_num_iters_runner(runner_droplet.private_ip_address, args.start_data_collection)
     run_data_collection(runner_droplet.private_ip_address)
 
-
 logger.info(f"Done setting up cluster! - hadoop ui: http://{master_droplet.ip_address}:8069")
 
 # ---------------------------- DONE ---------------------------------------------------
 
 end = time.time()
-from datetime import timedelta
-logger.info(f"Total Time Taken: {timedelta(seconds=end-start)}")
+logger.info(f"Total Time Taken: {timedelta(seconds=end - start)}")

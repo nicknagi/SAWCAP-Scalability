@@ -1,9 +1,11 @@
-import digitalocean
 import argparse
-from utils import start_monitoring, stop_monitoring
 import logging
 import os
 import sys
+
+import digitalocean
+
+from utils import start_monitoring, stop_monitoring
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -13,7 +15,6 @@ formatter = logging.Formatter(fmt="[%(asctime)s] p%(process)s {%(pathname)s:%(li
 stdout_handler.setFormatter(formatter)
 logger.addHandler(stdout_handler)
 logger.setLevel(logging.DEBUG)
-
 
 parser = argparse.ArgumentParser(description='Get info')
 
@@ -26,7 +27,7 @@ args = parser.parse_args()
 
 stop = args.stop
 name_suffix = args.uniqueid
-worker_names = [f"hadoop-worker-{name_suffix}-{x:02d}" for x in range(1, 10000+1)]
+worker_names = [f"hadoop-worker-{name_suffix}-{x:02d}" for x in range(1, 10000 + 1)]
 
 token = os.getenv("DIGITALOCEAN_ACCESS_TOKEN")
 manager = digitalocean.Manager(token=token)

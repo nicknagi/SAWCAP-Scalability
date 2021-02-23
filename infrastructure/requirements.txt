@@ -1,2 +1,2 @@
-digitalocean
+python-digitalocean
 argparse
