@@ -64,7 +64,7 @@ name_suffix = str(int(time.time())) if args.uniqueid is None else args.uniqueid
 master_name = "hadoop-master-" + name_suffix
 runner_name = "runner-" + name_suffix
 worker_names = [
-    f"hadoop-worker-{name_suffix}-{x:02d}" for x in range(1, num_workers + 1)]
+    f"hadoop-worker-{name_suffix}-{x:02d}" for x in range(1, args.num_workers + 1)]
 
 manager = digitalocean.Manager(token=token)
 keys = manager.get_all_sshkeys()
