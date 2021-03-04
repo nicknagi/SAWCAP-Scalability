@@ -64,7 +64,7 @@ name_suffix = str(int(time.time())) if args.uniqueid is None else args.uniqueid
 master_name = "hadoop-master-" + name_suffix
 runner_name = "runner-" + name_suffix
 worker_names = [
-    f"hadoop-worker-{name_suffix}-{x:02d}" for x in range(1, args.num_workers + 1)]
+    f"hadoop-worker-{name_suffix}-{x:02d}" for x in range(1, args.numworkers + 1)]
 
 manager = digitalocean.Manager(token=token)
 keys = manager.get_all_sshkeys()
@@ -268,6 +268,9 @@ def setup_worker(worker_droplet, existing):
     # Modify Hadoop Configs
     write_hadoop_configs(args.workload_scale, worker_droplet.private_ip_address)
     logger.info(f"Modified {worker_droplet.name} Hadoop Configs")
+
+    # Prevent too many consecutive requests
+    time.sleep(1)
 
 # Setup all workers
 # Weird bug fix as per issue: https://bugs.python.org/issue35629
