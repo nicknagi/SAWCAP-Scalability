@@ -70,14 +70,28 @@ def write_slaves_file_on_master(contents, private_ip):
 def _log_ssh_output(output):
     logger.debug(output)
 
-def run_hadoop(master_private_ip):
+def stop_hadoop(master_private_ip):
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect(hostname=master_private_ip, username='ubuntu', key_filename='/home/ubuntu/.ssh/id_rsa')
+
+    logger.debug("\n\n Output from stop Hadoop: \n")
+    out = custom_exec_command(ssh, "/usr/local/hadoop/sbin/stop-all.sh", 60)
+    _log_ssh_output(out)
+    out = custom_exec_command(ssh, "/usr/local/hadoop/sbin/mr-jobhistory-daemon.sh stop historyserver", 60)
+    _log_ssh_output(out)
+    logger.debug("\n\n")
+    ssh.close()
+
+def run_hadoop(master_private_ip, format=True):
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(hostname=master_private_ip, username='ubuntu', key_filename='/home/ubuntu/.ssh/id_rsa')
 
     logger.debug("\n\n Output from starting Hadoop: \n")
-    out = custom_exec_command(ssh, "/usr/local/hadoop/bin/hdfs namenode -format", 60)
-    _log_ssh_output(out)
+    if format:
+        out = custom_exec_command(ssh, "/usr/local/hadoop/bin/hdfs namenode -format", 60)
+        _log_ssh_output(out)
     out = custom_exec_command(ssh, "/usr/local/hadoop/sbin/start-dfs.sh && /usr/local/hadoop/sbin/start-yarn.sh", 60)
     _log_ssh_output(out)
     out = custom_exec_command(ssh, "/usr/local/hadoop/sbin/mr-jobhistory-daemon.sh start historyserver", 60)

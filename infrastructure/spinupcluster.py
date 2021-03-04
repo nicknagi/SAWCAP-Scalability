@@ -4,8 +4,8 @@ import argparse
 import os
 import time
 from utils import add_hosts_entries, write_slaves_file_on_master, remove_hosts_entry, \
- run_hadoop, modify_bashrc_runner, modify_capstone_worker_configs_runner, update_capstone_repo, modify_spark_conf_runner, try_ssh, \
-     modify_capstone_original_code_slaves_runner, modify_hibench_conf_runner, run_data_collection, start_monitoring, modify_num_iters_runner, \
+ run_hadoop, stop_hadoop, modify_bashrc_runner, modify_capstone_worker_configs_runner, update_capstone_repo, modify_spark_conf_runner, try_ssh, \
+     modify_capstone_original_code_slaves_runner, modify_hibench_conf_runner, run_data_collection, start_monitoring, stop_monitoring, modify_num_iters_runner, \
          write_hadoop_configs, add_prometheus_conf_orchestrator
 import logging
 import sys
@@ -267,8 +267,14 @@ with contextlib.closing(mp.Pool(batch_size)) as pool:
 # ---------------------------- Run Hadoop On Master (Which starts workers as well) ---------------------------------------------------
 
 # Start hadoop processes
+formatHDFS = not args.extend
+
+if args.extend:
+    logger.info(f"Stopping Hadoop")
+    stop_hadoop(master_droplet.private_ip_address)
+
 logger.info(f"Starting Hadoop")
-run_hadoop(master_droplet.private_ip_address)
+run_hadoop(master_droplet.private_ip_address, formatHDFS)
 logger.info(f"Hadoop Started")
 
 # ---------------------------- Setup Runner ---------------------------------------------------
@@ -334,6 +340,11 @@ os.system("sudo service prometheus restart")
 logger.info("Prometheus restarted")
 
 # -------------------------- Data Collection ------------------------------------------
+
+# Stop data collection
+if not args.extend:
+    for worker_droplet in existing_worker_droplets:
+        stop_monitoring(worker_droplet.private_ip_address)
 
 # Start data collection script
 if args.start_data_collection is not None:
