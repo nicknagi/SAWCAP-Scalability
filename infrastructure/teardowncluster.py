@@ -1,30 +1,32 @@
 #!/usr/bin/python3
-import digitalocean
 import argparse
 import os
+
+import digitalocean
+
 from utils import remove_prometheus_conf_orchestrator
 
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument("--uniqueid", type=str,
                     help="id of the cluster used as suffix", required=True)
-parser.add_argument("--leave_runner", 
+parser.add_argument("--leave_runner",
                     help="destroy all VMs except runner; useful for debugging", action='store_true')
 args = parser.parse_args()
 
 token = os.getenv("DIGITALOCEAN_ACCESS_TOKEN")
 
-REGION="tor1"
-WORKER_SNAPSHOT_ID="76642056"
-RUNNER_SNAPSHOT_ID="76642032"
-MASTER_SNAPSHOT_ID="76642031"
-WOKER_SIZE="s-1vcpu-2gb"
-RUNNER_SIZE="s-2vcpu-2gb"
-MASTER_SIZE="s-2vcpu-2gb"
+REGION = "tor1"
+WORKER_SNAPSHOT_ID = "76642056"
+RUNNER_SNAPSHOT_ID = "76642032"
+MASTER_SNAPSHOT_ID = "76642031"
+WOKER_SIZE = "s-1vcpu-2gb"
+RUNNER_SIZE = "s-2vcpu-2gb"
+MASTER_SIZE = "s-2vcpu-2gb"
 
 name_suffix = args.uniqueid
 master_name = "hadoop-master-" + name_suffix
 runner_name = "runner-" + name_suffix
-worker_names = [f"hadoop-worker-{name_suffix}-{x:02d}" for x in range(1, 10000+1)]
+worker_names = [f"hadoop-worker-{name_suffix}-{x:02d}" for x in range(1, 10000 + 1)]
 droplets_to_remove = [master_name, runner_name, *worker_names]
 
 if (args.leave_runner):
@@ -41,4 +43,3 @@ for droplet in my_droplets:
     if droplet.name in droplets_to_remove:
         droplet.destroy()
         print(f"Droplet {droplet.name} destroyed")
-

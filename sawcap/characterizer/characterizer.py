@@ -1,5 +1,7 @@
 import logging
-from config import LOG_LEVEL, STACK_SIM_THRESHOLD
+
+from config import STACK_SIM_THRESHOLD
+
 
 class Characterizer:
     def __init__(self, database):
@@ -10,7 +12,7 @@ class Characterizer:
         triplet = self._database.get_triplets()
         prev1_snapshot = triplet[1]
         curr_snapshot = triplet[2]
-        
+
         phase_changed = self._detect_phase_change(prev1_snapshot, curr_snapshot)
         phase_string = self._form_phase_string(prev1_snapshot, curr_snapshot, phase_changed)
 
@@ -27,7 +29,7 @@ class Characterizer:
         prev2_resources = triplet[0].resource_data
         prev1_resources = triplet[1].resource_data
         curr_resources = triplet[2].resource_data
-        
+
         profile = []
         num_resources = len(curr_resources)
         for i in range(num_resources):
@@ -36,7 +38,7 @@ class Characterizer:
         if not self._database.check_phase_exists(phase_string):
             logging.debug("New Phase Detected -> UNSEEN")
             self._database.create_new_phase(phase_string)
-        
+
         self._database.add_profile_to_phase(profile, phase_string)
 
     def _detect_phase_change(self, prev_snapshot, curr_snapshot):

@@ -1,8 +1,11 @@
-from influxdb import InfluxDBClient
 import logging
-from config import ORCHESTRATOR_PRIVATE_IP
 import socket
+
 import numpy as np
+from influxdb import InfluxDBClient
+
+from config import ORCHESTRATOR_PRIVATE_IP
+
 
 class MetricsPublisher:
     def __init__(self):
@@ -14,7 +17,7 @@ class MetricsPublisher:
         except Exception as e:
             logging.error(f"There was a problem connecting to InfluxDB at IP {ORCHESTRATOR_PRIVATE_IP} {e}")
             logging.info("Will not publish statistics")
-    
+
     # Args are lists with 2 elements each -- cpu and mem
     def publish_predictions(self, actual, predicted):
         json_body = [
@@ -32,7 +35,7 @@ class MetricsPublisher:
             }
         ]
         self.client.write_points(json_body)
-    
+
     # Args are floats with accuracies -- cpu and mem
     def publish_accuracy(self, acc_cpu, acc_mem):
         if np.isnan(acc_cpu):
@@ -51,4 +54,15 @@ class MetricsPublisher:
         ]
         self.client.write_points(json_body)
 
-
+    # fields_data - dict with data to be inserted into <measurement>
+    def publish_arbitrary_metrics(self, fields_data, measurement):
+        json_body = [
+            {
+                "measurement": measurement,
+                "tags": {
+                    "host": self.hostname
+                },
+                "fields": fields_data
+            }
+        ]
+        self.client.write_points(json_body)

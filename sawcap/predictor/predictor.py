@@ -1,8 +1,12 @@
-from sklearn import linear_model
-import numpy as np
-from config import BATCH_SIZE, NUM_RESOURCES
-from utils import MAPE
 import logging
+
+import numpy as np
+from sklearn import linear_model
+
+from config import BATCH_SIZE, NUM_RESOURCES
+from metrics.latency_decorator import publish_latency
+from utils import MAPE
+
 
 class Predictor:
 
@@ -11,12 +15,13 @@ class Predictor:
         self.algo = algo
         self.anomaly_confidence_state = 0
 
+    @publish_latency("prediction_latency")
     def get_prediction(self, cur_phase):
         phase_exists = False
         # if no phase available
         if cur_phase == "":
             return [0] * NUM_RESOURCES, phase_exists
-        
+
         # load prev1, prev2 and curr from database
         self._get_triplet_values()
 
@@ -30,12 +35,13 @@ class Predictor:
             return self.prev1_resource, phase_exists
         else:
             return self._prediction_helper(cur_phase), phase_exists
-    
+
+    @publish_latency("ml_model_update_latency")
     def update_ml_model(self, phase_string):
         # do not build model for an idle phase (no trace string) or if phase doesn't exist
         if phase_string == "" or not self.database.check_phase_exists(phase_string):
             return
-        
+
         if len(self.database.get_data_from_phase(phase_string)) == BATCH_SIZE:
             # load prev1, prev2 and curr from database
             self._get_triplet_values()
@@ -45,6 +51,7 @@ class Predictor:
             # reset the profiling data for current phase
             self.database.flush_data_from_phase(phase_string)
 
+    @publish_latency("anomaly_detection_latency")
     def detect_anomaly(self, predicted, curr_resources, cur_phase, phase_exists):
         # compare the predicted resource with the current resource
         # each mismatch changes confidence state 
@@ -52,7 +59,7 @@ class Predictor:
             return
 
         anomaly_confidence_state = self.anomaly_confidence_state
-        
+
         if phase_exists == False:
             # use simple heuristic of low CPU utilization for unseen phases
             if curr_resources[0] < 10:
@@ -115,7 +122,7 @@ class Predictor:
             return self._predict_naive(cur_phase)
         elif self.algo == "lasso":
             return self._predict_lasso(cur_phase)
-    
+
     def _add_models(self, cur_phase):
         # intiialize LASSO models with the number of resources
         # print("*** Number of resources during model init ", len(cur_res))
