@@ -1,17 +1,17 @@
 #!/usr/bin/python3
-import digitalocean
 import argparse
 import os
 import time
-from utils import add_hosts_entries, write_slaves_file_on_master, remove_hosts_entry, \
- run_hadoop, stop_hadoop, modify_bashrc_runner, modify_capstone_worker_configs_runner, update_capstone_repo, modify_spark_conf_runner, try_ssh, \
-     modify_capstone_original_code_slaves_runner, modify_hibench_conf_runner, run_data_collection, start_monitoring, stop_monitoring, modify_num_iters_runner, \
-         write_hadoop_configs, add_prometheus_conf_orchestrator
 import logging
 import sys
 import multiprocessing as mp
 from functools import partial
 import random
+import digitalocean
+from utils import add_hosts_entries, write_slaves_file_on_master, remove_hosts_entry, \
+ run_hadoop, stop_hadoop, modify_bashrc_runner, modify_capstone_worker_configs_runner, update_capstone_repo, modify_spark_conf_runner, try_ssh, \
+     modify_capstone_original_code_slaves_runner, modify_hibench_conf_runner, run_data_collection, start_monitoring, stop_monitoring, modify_num_iters_runner, \
+         write_hadoop_configs, add_prometheus_conf_orchestrator
 
 # Profiling
 start = time.time()
