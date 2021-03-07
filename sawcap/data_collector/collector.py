@@ -64,7 +64,7 @@ class DataCollector:
                 raise ConnectionError(f"Could not connect to worker: {s}")
             else:
                 worker_data = worker_data_response.json()
-                threaddump_agg.append(worker_data["threaddump_data"])
+                threaddump_agg.extend(worker_data["threaddump_data"])
                 resource_agg.append(worker_data["resource_data"])
 
         # functions = []

@@ -9,6 +9,6 @@ def get_worker_data():
     with open(f"{DATA_DIR}/resource_data") as f:
         resource_data = f.read().strip()
     with open(f"{DATA_DIR}/threaddump_data") as f:
-        threaddump_data = f.read().strip()
+        threaddump_data = f.readlines()
 
     return {"resource_data": resource_data, "threaddump_data": threaddump_data}
