@@ -36,7 +36,7 @@ while true; do
 		jstack ${pid} > "${data_dir}/temp_threaddump"
 		cat "${data_dir}/temp_threaddump" | java -jar jtda-cli.jar > "${data_dir}/threaddump_aggregate"
 		sed -i 's/<0x[0-9a-zA-Z]*>//g' "${data_dir}/threaddump_aggregate"
-		python get_stacks.py "${data_dir}/threaddump_aggregate" > "${data_dir}/threaddump_data"
+		python3 get_stacks.py "${data_dir}/threaddump_aggregate" > "${data_dir}/threaddump_data"
 
 	fi
 	sleep $1
