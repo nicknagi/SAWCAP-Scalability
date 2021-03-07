@@ -6,6 +6,10 @@ if [ "$#" -ne 1 ]; then
         exit
 fi
 
+# Start API server to get worker data
+private_ip_address=$(ip addr show | grep -o "inet 192.[0-9]*\.[0-9]*\.[0-9]*" | grep -o "192.[0-9]*\.[0-9]*\.[0-9]*")
+gunicorn worker_data_api:app -b "$private_ip_address":8690 --reload --log-level DEBUG &> worker_data_api.log
+
 while true; do
 
 	pid=`jps | grep CoarseGrainedExecutorBackend | awk '{print $1}'`
