@@ -56,7 +56,7 @@ class DataCollector:
             #                                                     f">> {LOCAL_DATA_DIR}/resource_agg"
             # os.system(command)
 
-            worker_data_response = requests.get(f"{s}:{WORKER_DATA_API_PORT}/worker_data")
+            worker_data_response = requests.get(f"http://{s}:{WORKER_DATA_API_PORT}/worker_data")
 
             # All workers should be able to send data, if not raise an Error
             if worker_data_response.status_code != 200:
