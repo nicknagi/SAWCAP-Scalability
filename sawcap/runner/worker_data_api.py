@@ -1,6 +1,8 @@
 from flask import Flask
+
 app = Flask(__name__)
 DATA_DIR = "/home/ubuntu/data"
+
 
 @app.route("/worker_data")
 def get_worker_data():
