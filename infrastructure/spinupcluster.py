@@ -38,6 +38,7 @@ parser.add_argument("--git_branch", type=str,
                     help="branch to be cloned on all machines in cluster", default="main")
 parser.add_argument("--start_data_collection", help="start data collection script on cluster, also starts monitoring",
                     type=str)
+parser.add_argument("-e", "--extend", action="store_true", help="Extend an existing cluster instead of creating a new cluster.")
 args = parser.parse_args()
 
 num_workers = args.numworkers
@@ -146,18 +147,64 @@ def add_tag_to_droplet(tag_name, droplet):
 
 # -----------------------------  Create all the droplets ---------------------------------------------
 
-
-runner_droplet = create_droplet(runner_name, RUNNER_SNAPSHOT_ID, RUNNER_SIZE)
-logger.info(f"Requested creation of {runner_droplet.name}")
-
-master_droplet = create_droplet(master_name, MASTER_SNAPSHOT_ID, MASTER_SIZE)
-logger.info(f"Requested creation of {master_droplet.name}")
-
+new_worker_droplets = []
+existing_worker_droplets = []
 worker_droplets = []
+new_num_workers = args.numworkers
+existing_num_workers = 0
+
+if args.extend:
+    my_droplets = manager.get_all_droplets()
+    my_droplet_names = [d.name for d in my_droplets]
+    
+    try:
+        master_droplet = my_droplets[my_droplet_names.index(master_name)]
+        runner_droplet = my_droplets[my_droplet_names.index(runner_name)]
+    except ValueError as e:
+        logger.error("No such cluster is found.")
+        sys.exit(1)
+
+    for existing_num_workers in range(1, 10000+1):
+        worker_name = f"hadoop-worker-{name_suffix}-{existing_num_workers:02d}"
+        try:
+            droplet = my_droplets[my_droplet_names.index(worker_name)]
+        except ValueError as e:
+            break
+        existing_worker_droplets.append(droplet)
+        worker_droplets.append(droplet)
+    existing_num_workers -= 1
+    logger.info(f"Existing Master: {master_droplet}")
+    logger.info(f"Existing Runner: {runner_droplet}")
+    logger.info(f"Existing Worker #: {existing_num_workers}")
+    input("Press any key to continue...")
+
+else:
+    runner_droplet = create_droplet(runner_name, RUNNER_SNAPSHOT_ID, RUNNER_SIZE)
+    logger.info(f"Requested creation of {runner_droplet.name}")
+
+    master_droplet = create_droplet(master_name, MASTER_SNAPSHOT_ID, MASTER_SIZE)
+    logger.info(f"Requested creation of {master_droplet.name}")
+
+worker_names = [
+    f"hadoop-worker-{name_suffix}-{x:02d}" for x in range(existing_num_workers+1, new_num_workers+existing_num_workers+1)]
+
 for worker_name in worker_names:
     logger.info(f"Requested creation of {worker_name}")
-    worker_droplets.append(create_droplet(
-        worker_name, WORKER_SNAPSHOT_ID, WORKER_SIZE))
+    d = create_droplet(worker_name, WORKER_SNAPSHOT_ID, WORKER_SIZE)
+    new_worker_droplets.append(d)
+    worker_droplets.append(d)
+
+# ---------------------------- If extend, reinitialize all nodes ---------------------------------------------
+
+if args.extend:
+    for worker_droplet in existing_worker_droplets:
+        logger.info(f"Requested reinitialization of {worker_droplet.name}")
+        worker_droplet.restore(WORKER_SNAPSHOT_ID)
+
+    runner_droplet.restore(RUNNER_SNAPSHOT_ID)
+    logger.info(f"Requested reinitialization of {runner_droplet.name}")
+    master_droplet.restore(MASTER_SNAPSHOT_ID)
+    logger.info(f"Requested reinitialization of {master_droplet.name}")
 
 # ---------------------------- Wait For Master To Complete ---------------------------------------------------
 
@@ -232,12 +279,12 @@ def setup_worker(worker_droplet):
     # Prevent too many consecutive requests
     time.sleep(1)
 
-num_workers = 3
+batch_size = 3
 # Setup all workers
 # Weird bug fix as per issue: https://bugs.python.org/issue35629
 import contextlib
 
-with contextlib.closing(mp.Pool(num_workers)) as pool:
+with contextlib.closing(mp.Pool(batch_size)) as pool:
     pool.map(setup_worker, worker_droplets)
 
 # for worker_droplet in worker_droplets:
@@ -298,13 +345,14 @@ logger.info("Started sawcap resource monitoring script")
 
 vm_ips = []
 
-if master_droplet.private_ip_address is not None:
-    vm_ips.append(master_droplet.private_ip_address)
+if not args.extend:
+    if master_droplet.private_ip_address is not None:
+        vm_ips.append(master_droplet.private_ip_address)
 
-if runner_droplet.private_ip_address is not None:
-    vm_ips.append(runner_droplet.private_ip_address)
+    if runner_droplet.private_ip_address is not None:
+        vm_ips.append(runner_droplet.private_ip_address)
 
-for worker in worker_droplets:
+for worker in new_worker_droplets:
     vm_ips.append(worker.private_ip_address)
 
 add_prometheus_conf_orchestrator(vm_ips, name_suffix)
