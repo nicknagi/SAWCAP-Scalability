@@ -6,18 +6,15 @@ import os
 import sys
 import time
 from datetime import timedelta
-import logging
-import sys
-import multiprocessing as mp
-from functools import partial
-import random
+
 import digitalocean
+
 from utils import add_hosts_entries, write_slaves_file_on_master, remove_hosts_entry, \
- run_hadoop, stop_hadoop, modify_bashrc_runner, modify_capstone_worker_configs_runner, update_capstone_repo, modify_spark_conf_runner, try_ssh, \
-     modify_capstone_original_code_slaves_runner, modify_hibench_conf_runner, run_data_collection, start_monitoring, stop_monitoring, modify_num_iters_runner, \
-         write_hadoop_configs, add_prometheus_conf_orchestrator, run_sawcap_monitoring
-
-
+    run_hadoop, modify_bashrc_runner, modify_capstone_worker_configs_runner, update_capstone_repo, \
+    modify_spark_conf_runner, try_ssh, \
+    modify_capstone_original_code_slaves_runner, modify_hibench_conf_runner, run_data_collection, start_monitoring, \
+    modify_num_iters_runner, \
+    write_hadoop_configs, add_prometheus_conf_orchestrator, run_sawcap_monitoring
 
 # Profiling
 start = time.time()
@@ -41,10 +38,9 @@ parser.add_argument("--git_branch", type=str,
                     help="branch to be cloned on all machines in cluster", default="main")
 parser.add_argument("--start_data_collection", help="start data collection script on cluster, also starts monitoring",
                     type=str)
-parser.add_argument("-e", "--extend", action="store_true", help="Extend an existing cluster instead of creating a new cluster.")
-
 args = parser.parse_args()
 
+num_workers = args.numworkers
 token = os.getenv("DIGITALOCEAN_ACCESS_TOKEN")
 
 # Set the VM size depending on workload size
@@ -65,7 +61,6 @@ master_name = "hadoop-master-" + name_suffix
 runner_name = "runner-" + name_suffix
 worker_names = [
     f"hadoop-worker-{name_suffix}-{x:02d}" for x in range(1, args.numworkers + 1)]
-
 manager = digitalocean.Manager(token=token)
 keys = manager.get_all_sshkeys()
 
@@ -151,52 +146,18 @@ def add_tag_to_droplet(tag_name, droplet):
 
 # -----------------------------  Create all the droplets ---------------------------------------------
 
-new_worker_droplets = []
-existing_worker_droplets = []
-all_worker_droplets = []
-new_num_workers = args.numworkers
-existing_num_workers = 0
 
-if args.extend:
-    my_droplets = manager.get_all_droplets()
-    my_droplet_names = [d.name for d in my_droplets]
-    
-    try:
-        master_droplet = my_droplets[my_droplet_names.index(master_name)]
-        runner_droplet = my_droplets[my_droplet_names.index(runner_name)]
-    except ValueError as e:
-        logger.error("No such cluster is found.")
-        sys.exit(1)
+runner_droplet = create_droplet(runner_name, RUNNER_SNAPSHOT_ID, RUNNER_SIZE)
+logger.info(f"Requested creation of {runner_droplet.name}")
 
-    for existing_num_workers in range(1, 10000+1):
-        worker_name = f"hadoop-worker-{name_suffix}-{existing_num_workers:02d}"
-        try:
-            droplet = my_droplets[my_droplet_names.index(worker_name)]
-        except ValueError as e:
-            break
-        existing_worker_droplets.append(droplet)
-        all_worker_droplets.append(droplet)
-    existing_num_workers -= 1
-    logger.info(f"Existing Master: {master_droplet}")
-    logger.info(f"Existing Runner: {runner_droplet}")
-    logger.info(f"Existing Worker #: {existing_num_workers}")
-    input("Press any key to continue...")
+master_droplet = create_droplet(master_name, MASTER_SNAPSHOT_ID, MASTER_SIZE)
+logger.info(f"Requested creation of {master_droplet.name}")
 
-else:
-    runner_droplet = create_droplet(runner_name, RUNNER_SNAPSHOT_ID, RUNNER_SIZE)
-    logger.info(f"Requested creation of {runner_droplet.name}")
-
-    master_droplet = create_droplet(master_name, MASTER_SNAPSHOT_ID, MASTER_SIZE)
-    logger.info(f"Requested creation of {master_droplet.name}")
-
-worker_names = [
-    f"hadoop-worker-{name_suffix}-{x:02d}" for x in range(existing_num_workers+1, new_num_workers+existing_num_workers+1)]
-
+worker_droplets = []
 for worker_name in worker_names:
     logger.info(f"Requested creation of {worker_name}")
-    d = create_droplet(worker_name, WORKER_SNAPSHOT_ID, WORKER_SIZE)
-    new_worker_droplets.append(d)
-    all_worker_droplets.append(d)
+    worker_droplets.append(create_droplet(
+        worker_name, WORKER_SNAPSHOT_ID, WORKER_SIZE))
 
 # ---------------------------- Wait For Master To Complete ---------------------------------------------------
 
@@ -214,29 +175,29 @@ master_droplet.load()
 done = False
 while not done:
     done = True
-    for worker_droplet in new_worker_droplets:
+    for worker_droplet in worker_droplets:
         worker_droplet.load()
         if worker_droplet.private_ip_address == None:
             done = False
 
 # ---------------------------- Modify Master Files ---------------------------------------------------
 
-new_worker_private_ips = [(worker_droplet.name, worker_droplet.private_ip_address)
-                      for worker_droplet in new_worker_droplets]
-new_worker_hostnames_ip_lines = [
-    f"{entry[1]} {entry[0]}\n" for entry in new_worker_private_ips]
+worker_private_ips = [(worker_droplet.name, worker_droplet.private_ip_address)
+                      for worker_droplet in worker_droplets]
+woker_hostnames_ip_lines = [
+    f"{entry[1]} {entry[0]}\n" for entry in worker_private_ips]
 
-lines_to_add_master = ["127.0.1.1 spark-master\n", *new_worker_hostnames_ip_lines]
+lines_to_add_master = ["127.0.1.1 spark-master\n", *woker_hostnames_ip_lines]
 
 # Modify master /etc/hosts
 add_hosts_entries(lines_to_add_master, master_droplet.private_ip_address)
 logger.info("Modified master /etc/hosts")
 
 # Modify slaves file on master
-new_worker_private_ips = [
-    f"{worker_droplet.private_ip_address}\n" for worker_droplet in new_worker_droplets]
+worker_private_ips = [
+    f"{worker_droplet.private_ip_address}\n" for worker_droplet in worker_droplets]
 write_slaves_file_on_master(
-    new_worker_private_ips, master_droplet.private_ip_address)
+    worker_private_ips, master_droplet.private_ip_address)
 logger.info("Modified master slaves file")
 
 # Modify Hadoop configs on master
@@ -245,25 +206,24 @@ logger.info("Modified master Hadoop configs")
 
 
 # ---------------------------- Modify Worker Files ---------------------------------------------------
-def setup_worker(worker_droplet, existing):
-    if not existing:
-        logger.info(f"Starting to wait for worker {worker_droplet.name} to spin up")
-        wait_until_droplet_ready(worker_droplet)
-        logger.info(f"Worker {worker_droplet.name} has been spun up")
-    
-        # Add tag to workers
-        add_tag_to_droplet("hadoop-debug", worker_droplet)
+def setup_worker(worker_droplet):
+    logger.info(f"Starting to wait for worker {worker_droplet.name} to spin up")
+    wait_until_droplet_ready(worker_droplet)
+    logger.info(f"Worker {worker_droplet.name} has been spun up")
 
-        # Modify worker /etc/hosts
-        remove_hosts_entry(worker_droplet.name, worker_droplet.private_ip_address)
-        lines_to_add_worker = [
-            f"{master_droplet.private_ip_address} spark-master\n", *new_worker_hostnames_ip_lines]
-        add_hosts_entries(lines_to_add_worker, worker_droplet.private_ip_address)
-        logger.info(f"Modified {worker_droplet.name} /etc/hosts")
-        
-        # Update capstone repo
-        update_capstone_repo(worker_droplet.private_ip_address, args.git_branch)
-        logger.info(f"Updated {worker_droplet.name} capstone repo")
+    # Add tag to workers
+    add_tag_to_droplet("hadoop-debug", worker_droplet)
+
+    # Modify worker /etc/hosts
+    remove_hosts_entry(worker_droplet.name, worker_droplet.private_ip_address)
+    lines_to_add_worker = [
+        f"{master_droplet.private_ip_address} spark-master\n", *woker_hostnames_ip_lines]
+    add_hosts_entries(lines_to_add_worker, worker_droplet.private_ip_address)
+    logger.info(f"Modified {worker_droplet.name} /etc/hosts")
+
+    # Update capstone repo
+    update_capstone_repo(worker_droplet.private_ip_address, args.git_branch)
+    logger.info(f"Updated {worker_droplet.name} capstone repo")
 
     # Modify Hadoop Configs
     write_hadoop_configs(args.workload_scale, worker_droplet.private_ip_address)
@@ -272,17 +232,13 @@ def setup_worker(worker_droplet, existing):
     # Prevent too many consecutive requests
     time.sleep(1)
 
+num_workers = 3
 # Setup all workers
 # Weird bug fix as per issue: https://bugs.python.org/issue35629
 import contextlib
 
-batch_size = 3
-with contextlib.closing(mp.Pool(batch_size)) as pool:
-    pool.map(partial(setup_worker, existing=True), existing_worker_droplets)
-
-
-with contextlib.closing(mp.Pool(batch_size)) as pool:
-    pool.map(partial(setup_worker, existing=False), new_worker_droplets)
+with contextlib.closing(mp.Pool(num_workers)) as pool:
+    pool.map(setup_worker, worker_droplets)
 
 # for worker_droplet in worker_droplets:
 #     setup_worker(worker_droplet)
@@ -290,56 +246,47 @@ with contextlib.closing(mp.Pool(batch_size)) as pool:
 # ---------------------------- Run Hadoop On Master (Which starts workers as well) ---------------------------------------------------
 
 # Start hadoop processes
-formatHDFS = not args.extend
-
-if args.extend:
-    logger.info(f"Stopping Hadoop")
-    stop_hadoop(master_droplet.private_ip_address)
-
 logger.info(f"Starting Hadoop")
-run_hadoop(master_droplet.private_ip_address, formatHDFS)
+run_hadoop(master_droplet.private_ip_address)
 logger.info(f"Hadoop Started")
 
 # ---------------------------- Setup Runner ---------------------------------------------------
 
-if not args.extend:
-    logger.info("Starting to wait for runner to spin up")
-    wait_until_droplet_ready(runner_droplet)
-    logger.info("Runner has been spun up")
+logger.info("Starting to wait for runner to spin up")
+wait_until_droplet_ready(runner_droplet)
+logger.info("Runner has been spun up")
 
-    # Refresh droplet data
-    runner_droplet.load()
+# Refresh droplet data
+runner_droplet.load()
 
-    # Add tag to runner
-    add_tag_to_droplet("hadoop-debug", runner_droplet)
+# Add tag to runner
+add_tag_to_droplet("hadoop-debug", runner_droplet)
 
-    # Modify worker /etc/hosts
-    lines_to_add_runner = [f"{master_droplet.private_ip_address} spark-master\n"]
-    add_hosts_entries(lines_to_add_runner, runner_droplet.private_ip_address)
-    logger.info("Modified runner /etc/hosts")
-
-    # Modify runner .bashrc
-    modify_bashrc_runner(runner_droplet.private_ip_address)
-    logger.info("Modified runner .bashrc")
-
-    # Update Capstone Repo
-    update_capstone_repo(runner_droplet.private_ip_address, args.git_branch)
-    logger.info(f"Updated runner capstone repo")
-
-## NOT DONE
+# Modify worker /etc/hosts
+lines_to_add_runner = [f"{master_droplet.private_ip_address} spark-master\n"]
+add_hosts_entries(lines_to_add_runner, runner_droplet.private_ip_address)
+logger.info("Modified runner /etc/hosts")
 
 # Modify Hadoop Configs
 write_hadoop_configs(args.workload_scale, runner_droplet.private_ip_address)
 logger.info("Modified runner Hadoop Configs")
 
+# Modify runner .bashrc
+modify_bashrc_runner(runner_droplet.private_ip_address)
+logger.info("Modified runner .bashrc")
+
+# Update Capstone Repo
+update_capstone_repo(runner_droplet.private_ip_address, args.git_branch)
+logger.info(f"Updated runner capstone repo")
+
 # Modify capstone files
-workers = [worker_droplet.private_ip_address for worker_droplet in all_worker_droplets]
+workers = [worker_droplet.private_ip_address for worker_droplet in worker_droplets]
 modify_capstone_worker_configs_runner(runner_droplet.private_ip_address, workers)
 modify_capstone_original_code_slaves_runner(runner_droplet.private_ip_address, workers)
 logger.info("Modified runner config.py and servers in detect_anomaly.py")
 
 # Modify spark.conf with num_executors = num_workers and hibench.conf with workload size
-modify_spark_conf_runner(runner_droplet.private_ip_address, len(all_worker_droplets), args.workload_scale)
+modify_spark_conf_runner(runner_droplet.private_ip_address, len(worker_droplets), args.workload_scale)
 modify_hibench_conf_runner(runner_droplet.private_ip_address, args.workload_scale)
 logger.info("Modified runner spark.conf and hibench.conf")
 
@@ -351,14 +298,13 @@ logger.info("Started sawcap resource monitoring script")
 
 vm_ips = []
 
-if not args.extend:
-    if master_droplet.private_ip_address is not None:
-        vm_ips.append(master_droplet.private_ip_address)
+if master_droplet.private_ip_address is not None:
+    vm_ips.append(master_droplet.private_ip_address)
 
-    if runner_droplet.private_ip_address is not None:
-        vm_ips.append(runner_droplet.private_ip_address)
+if runner_droplet.private_ip_address is not None:
+    vm_ips.append(runner_droplet.private_ip_address)
 
-for worker in new_worker_droplets:
+for worker in worker_droplets:
     vm_ips.append(worker.private_ip_address)
 
 add_prometheus_conf_orchestrator(vm_ips, name_suffix)
@@ -368,14 +314,9 @@ logger.info("Prometheus restarted")
 
 # -------------------------- Data Collection ------------------------------------------
 
-# Stop data collection
-if not args.extend:
-    for worker_droplet in existing_worker_droplets:
-        stop_monitoring(worker_droplet.private_ip_address)
-
 # Start data collection script
 if args.start_data_collection is not None:
-    for worker_droplet in all_worker_droplets:
+    for worker_droplet in worker_droplets:
         start_monitoring(worker_droplet.private_ip_address, 1)
 
     time.sleep(5)
