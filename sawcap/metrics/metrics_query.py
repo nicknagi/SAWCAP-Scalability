@@ -64,6 +64,12 @@ class MetricsQuery:
         self.get_avg_predictions(id, 'actual_mem')
         self.get_avg_predictions(id, 'predicted_mem')
 
+        print(f"\n### Latency Stats ###\n")
+        self.get_latency_metrics(args.uniqueid, 'data_collection_latency')
+        self.get_latency_metrics(args.uniqueid, 'prediction_latency')
+        self.get_latency_metrics(args.uniqueid, 'ml_model_update_latency')
+        self.get_latency_metrics(args.uniqueid, 'anomaly_detection_latency')
+
     def get_max_val(self, id, metric):
         """
            id: uniqueId of experiment
@@ -145,7 +151,7 @@ class MetricsQuery:
         for entry in data_points:
             if entry['mean']:
                 print(f"{self.to_date(entry['time'])}: {entry['mean']:.5f}")
-
+        
         print("")
 
     def get_prediction_frequency(self, id):
@@ -168,6 +174,27 @@ class MetricsQuery:
         data_points = list(result.get_points(measurement='predictions'))
         print(f"Number of mem predictions for {id}: {data_points[0]['count']}")
 
+    def get_latency_metrics(self, id, metric):
+        """ Get the latency of sawcap metrics
+           id: uniqueId of experiment
+        """
+        if id in self.id_lookup.keys():
+            experiment = self.id_lookup[id]
+        else:
+            logging.error(f"Unique id '{id}' not found")
+            return
+
+        # average per 5 min
+        select_query = f'SELECT MEAN("latency") from "{metric}" WHERE host=\'runner-{id}\' GROUP BY time(5m);'
+        result = self.client.query(select_query)
+        data_points = list(result.get_points(measurement=metric))
+        print(f"  Average {metric} (seconds) for {id} per 5 minutes")
+        for entry in data_points:
+            if entry['mean']:
+                print(f"{self.to_date(entry['time'])}: {entry['mean']:.5f}")
+
+        print("")
+
     def test(self, id):
         if id in self.id_lookup.keys():
             experiment = self.id_lookup[id]
@@ -184,7 +211,7 @@ class MetricsQuery:
 parser = argparse.ArgumentParser()
 parser.add_argument("-uid", "--uniqueid", help="Unique Id of experiment")
 parser.add_argument("-m", "--metric", help="Metric to look for cpu, mem, download, upload etc.")
-parser.add_argument("-op", "--operation", help="Operation to perform max, min, avg, freq etc.")
+parser.add_argument("-op", "--operation", help="Operation to perform max, min, avg, freq, latency etc.")
 parser.add_argument("--all", help="Generate full report", default=False, action='store_true')
 parser.add_argument("--test", help="Testing flag", default=False, action='store_true')
 args = parser.parse_args()
@@ -207,5 +234,7 @@ elif args.operation == 'avg':
     metrics_query.get_avg_resources(args.uniqueid, args.metric)
 elif args.operation == 'freq':
     metrics_query.get_prediction_frequency(args.uniqueid)
+elif args.operation == 'latency':
+    metrics_query.get_latency_metrics(args.uniqueid, args.metric)
 else:
     logging.error(f"Invalid input")
