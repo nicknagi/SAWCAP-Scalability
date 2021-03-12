@@ -36,23 +36,23 @@ class MetricsQuery:
             return
         print(f"start: {self.to_date(experiment[0])}, end: {self.to_date( experiment[1])}")
 
-        print(f"\n### Prediction Stats ###")
+        nprint(f"\n### Prediction Stats ###\n")
         self.get_prediction_frequency(id)
 
         print(f"\n### Sawcap Resource Usage Stats ###")
-        print(f"\n MAX")
+        print(f"\n  MAX")
         self.get_max_val(id, 'cpu')
         self.get_max_val(id, 'mem')
         self.get_max_val(id, 'download')
         self.get_max_val(id, 'upload')
 
-        print(f"\n MIN")
+        print(f"\n  MIN")
         self.get_min_val(id, 'cpu')
         self.get_min_val(id, 'mem')
         self.get_min_val(id, 'download')
         self.get_min_val(id, 'upload')
 
-        print(f"\n AVERAGE")
+        print(f"\n  AVERAGE")
         self.get_avg_vals(id, 'cpu')
         self.get_avg_vals(id, 'mem')
         self.get_avg_vals(id, 'download')
@@ -105,7 +105,7 @@ class MetricsQuery:
         select_query = f'SELECT MEAN("{metric}") from "sawcap_resource_consumption" WHERE host=\'runner-{id}\' GROUP BY time(5m);'
         result = self.client.query(select_query)
         data_points = list(result.get_points(measurement='sawcap_resource_consumption'))
-        print(f"Average {metric} for {id} per 5 minutes")
+        print(f"  Average {metric} for {id} per 5 minutes")
         for entry in data_points:
             if entry['mean']:
                 print(f"{self.to_date(entry['time'])}: {entry['mean']:.5f}")
