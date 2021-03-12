@@ -177,7 +177,8 @@ def update_capstone_repo(private_ip, branch_name):
 
     logger.debug("\n Output From Updating Github Repo: \n")
     stdout = custom_exec_command(ssh,
-                                 f"cd {path} && git stash && git checkout main && git pull && git checkout {branch_name}",
+                                 f"cd {path} && git stash && git checkout main && git pull && "
+                                 f"git checkout {branch_name} && git pull",
                                  10)
     _log_ssh_output(stdout)
 
