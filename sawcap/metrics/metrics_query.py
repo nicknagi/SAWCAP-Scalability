@@ -45,7 +45,7 @@ class MetricsQuery:
         select_query = f'SELECT MAX("{metric}") from "sawcap_resource_consumption" WHERE time >= \'{t_start}\' AND time < \'{t_end}\';'
         result = self.client.query(select_query)
         data_points = list(result.get_points(measurement='sawcap_resource_consumption'))
-        print(f"Max {metric} for {id}: {data_points[0]['max']}")
+        print(f"Max {metric} for {id}: {data_points[0]['max']:.5f}")
 
     def get_min_val(self, id, metric):
         """
@@ -64,7 +64,7 @@ class MetricsQuery:
         select_query = f'SELECT MIN("{metric}") from "sawcap_resource_consumption" WHERE time >= \'{t_start}\' AND time < \'{t_end}\';'
         result = self.client.query(select_query)
         data_points = list(result.get_points(measurement='sawcap_resource_consumption'))
-        print(f"Min {metric} for {id}: {data_points[0]['min']}")
+        print(f"Min {metric} for {id}: {data_points[0]['min']:.5f}")
 
     def get_avg_vals(self, id, metric):
         """ Group averages by 5min intervals
@@ -86,6 +86,29 @@ class MetricsQuery:
         for entry in data_points:
             print(f"{self.to_date(entry['time'])}: {entry['mean']:.5f}")
 
+    def get_prediction_frequency(self, id):
+        """ Get the frequency that sawcap makes cpu and mem predictions
+           id: uniqueId of experiment
+        """
+        if id in self.id_lookup.keys():
+            experiment = self.id_lookup[id]
+        else:
+            logging.error(f"Unique id '{id}' not found")
+            return
+        t_start = experiment[0]
+        t_end = experiment[1]
+        print(f"start: {self.to_date(t_start)}, end: {self.to_date(t_end)}")
+
+        select_query_cpu_pred = f'SELECT COUNT("predicted_cpu") from "predictions" WHERE (time >= \'{t_start}\' AND time < \'{t_end}\');'
+        result = self.client.query(select_query_cpu_pred)    
+        data_points = list(result.get_points(measurement='predictions'))
+        print(f"Number of cpu predictions for {id}: {data_points[0]['count']}")
+
+        select_query_mem_pred = f'SELECT COUNT("predicted_mem") from "predictions" WHERE (time >= \'{t_start}\' AND time < \'{t_end}\');'
+        result = self.client.query(select_query_mem_pred)    
+        data_points = list(result.get_points(measurement='predictions'))
+        print(f"Number of mem predictions for {id}: {data_points[0]['count']}")
+
 parser = argparse.ArgumentParser()
 parser.add_argument("-uid", "--uniqueid", help="Unique Id of experiment")
 parser.add_argument("-m", "--metric", help="Metric to look for cpu, mem, download, upload etc.")
@@ -100,5 +123,7 @@ elif args.operation == 'min':
     metrics_query.get_min_val(args.uniqueid, args.metric)
 elif args.operation == 'avg':
     metrics_query.get_avg_vals(args.uniqueid, args.metric)
+elif args.operation == 'freq':
+    metrics_query.get_prediction_frequency(args.uniqueid)
 else:
     logging.error(f"Invalid input")
