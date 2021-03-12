@@ -20,7 +20,7 @@ def get_trace(language, file_name):
         # if JAVA, we search for "Stack"
         # if C, we search for Thread
         # if line contains "stack", new stack
-        if (language == 0):
+        if language == 0:
             # java
             if "Stack:" in line:
                 # print ("found stack start")
@@ -29,7 +29,7 @@ def get_trace(language, file_name):
             # C
             if "(Thread" in line:
                 start = 1
-        if (start == 1):
+        if start == 1:
             string = string + line.rstrip('\n')
             # find the last line of the trace
             if not line.rstrip('\n'):
@@ -51,8 +51,7 @@ def main(filename):
     total_stacks = 0
     for i in stacks:
         if 'spark' in i:
-            print
-            i
+            print(i)
             total_stacks = total_stacks + 1
 
 
@@ -60,7 +59,6 @@ def main(filename):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print
-        sys.argv[0], '<thread_dump aggregate file>'
+        print(sys.argv[0], '<thread_dump aggregate file>')
         exit()
     main(sys.argv[1])
