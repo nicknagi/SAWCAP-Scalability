@@ -68,10 +68,8 @@ class MetricsQuery:
         else:
             logging.error(f"Unique id '{id}' not found")
             return
-        t_start = experiment[0]
-        t_end = experiment[1]
 
-        select_query = f'SELECT MAX("{metric}") from "sawcap_resource_consumption" WHERE time >= \'{t_start}\' AND time < \'{t_end}\';'
+        select_query = f'SELECT MAX("{metric}") from "sawcap_resource_consumption" WHERE host=\'runner-{id}\';'
         result = self.client.query(select_query)
         data_points = list(result.get_points(measurement='sawcap_resource_consumption'))
         print(f"Max {metric} for {id}: {data_points[0]['max']:.5f}")
@@ -86,10 +84,8 @@ class MetricsQuery:
         else:
             logging.error(f"Unique id '{id}' not found")
             return
-        t_start = experiment[0]
-        t_end = experiment[1]
 
-        select_query = f'SELECT MIN("{metric}") from "sawcap_resource_consumption" WHERE time >= \'{t_start}\' AND time < \'{t_end}\';'
+        select_query = f'SELECT MIN("{metric}") from "sawcap_resource_consumption" WHERE host=\'runner-{id}\';'
         result = self.client.query(select_query)
         data_points = list(result.get_points(measurement='sawcap_resource_consumption'))
         print(f"Min {metric} for {id}: {data_points[0]['min']:.5f}")
@@ -104,23 +100,23 @@ class MetricsQuery:
         else:
             logging.error(f"Unique id '{id}' not found")
             return
-        t_start = experiment[0]
-        t_end = experiment[1]
 
         # average per 5 min
-        select_query = f'SELECT MEAN("{metric}") from "sawcap_resource_consumption" WHERE (time >= \'{t_start}\' AND time < \'{t_end}\') GROUP BY time(5m);'
+        select_query = f'SELECT MEAN("{metric}") from "sawcap_resource_consumption" WHERE host=\'runner-{id}\' GROUP BY time(5m);'
         result = self.client.query(select_query)
         data_points = list(result.get_points(measurement='sawcap_resource_consumption'))
         print(f"Average {metric} for {id} per 5 minutes")
         for entry in data_points:
-            print(f"{self.to_date(entry['time'])}: {entry['mean']:.5f}")
+            if entry['mean']:
+                print(f"{self.to_date(entry['time'])}: {entry['mean']:.5f}")
 
+        # TODO: doesn't work because it contains NONE 
         # total average
-        select_query = f'SELECT MEAN("{metric}") from "sawcap_resource_consumption" WHERE (time >= \'{t_start}\' AND time < \'{t_end}\');'
-        result = self.client.query(select_query)
-        data_points = list(result.get_points(measurement='sawcap_resource_consumption'))
-        print(f"\nAverage {metric} for {id}")
-        print(f"{self.to_date(data_points[0]['time'])}: {data_points[0]['mean']:.5f}")
+        # select_query = f'SELECT MEAN("{metric}") from "sawcap_resource_consumption" WHERE host=\'runner-{id}\' GROUP BY time(5m);'
+        # result = self.client.query(select_query)
+        # data_points = list(result.get_points(measurement='sawcap_resource_consumption'))
+        # print(f"\nAverage {metric} for {id}")
+        # print(f"{self.to_date(data_points[0]['time'])}: {data_points[0]['mean']:.5f}")
 
         print("")
 
@@ -133,27 +129,43 @@ class MetricsQuery:
         else:
             logging.error(f"Unique id '{id}' not found")
             return
-        t_start = experiment[0]
-        t_end = experiment[1]
 
-        select_query_cpu_pred = f'SELECT COUNT("predicted_cpu") from "predictions" WHERE (time >= \'{t_start}\' AND time < \'{t_end}\');'
+        select_query_cpu_pred = f'SELECT COUNT("predicted_cpu") from "predictions" WHERE host=\'runner-{id}\';'
         result = self.client.query(select_query_cpu_pred)    
         data_points = list(result.get_points(measurement='predictions'))
         print(f"Number of cpu predictions for {id}: {data_points[0]['count']}")
 
-        select_query_mem_pred = f'SELECT COUNT("predicted_mem") from "predictions" WHERE (time >= \'{t_start}\' AND time < \'{t_end}\');'
+        select_query_mem_pred = f'SELECT COUNT("predicted_mem") from "predictions" WHERE host=\'runner-{id}\';'
         result = self.client.query(select_query_mem_pred)    
         data_points = list(result.get_points(measurement='predictions'))
         print(f"Number of mem predictions for {id}: {data_points[0]['count']}")
+
+    def test(self, id):
+        if id in self.id_lookup.keys():
+            experiment = self.id_lookup[id]
+        else:
+            logging.error(f"Unique id '{id}' not found")
+            return
+
+        select_query = f'SELECT * from "sawcap_resource_consumption" WHERE host=\'runner-{id}\';'
+        result = self.client.query(select_query)
+        data_points = list(result.get_points(measurement='sawcap_resource_consumption'))
+        print(f"Max cpu for {id}: {data_points[0]['max']:.5f}")
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-uid", "--uniqueid", help="Unique Id of experiment")
 parser.add_argument("-m", "--metric", help="Metric to look for cpu, mem, download, upload etc.")
 parser.add_argument("-op", "--operation", help="Operation to perform max, min, avg, freq etc.")
 parser.add_argument("--all", help="Generate full report", default=False, action='store_true')
+parser.add_argument("--test", help="Testing flag", default=False, action='store_true')
 args = parser.parse_args()
 
 metrics_query = MetricsQuery()
+
+if args.test:
+    metrics_query.test(args.uniqueid)
+    exit()
 
 if args.all:
     metrics_query.full_report(args.uniqueid)
