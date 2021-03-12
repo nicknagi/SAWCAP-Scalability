@@ -1,6 +1,7 @@
 import logging
 import socket
 import argparse
+import sys
 from influxdb import InfluxDBClient
 from datetime import datetime, timezone
 
@@ -34,41 +35,46 @@ class MetricsQuery:
         else:
             logging.error(f"Unique id '{id}' not found")
             return
-        print(f"start: {self.to_date(experiment[0])}, end: {self.to_date( experiment[1])}")
 
-        print(f"\n### Sawcap Resource Usage Stats ###")
-        print(f"\n  MAX")
-        self.get_max_val(id, 'cpu')
-        self.get_max_val(id, 'mem')
-        self.get_max_val(id, 'download')
-        self.get_max_val(id, 'upload')
+        file = f'{id}_full_test_report.txt'
+        with open(file, 'w') as f:
+            sys.stdout = f
+            
+            print(f"start: {self.to_date(experiment[0])}, end: {self.to_date( experiment[1])}")
 
-        print(f"\n  MIN")
-        self.get_min_val(id, 'cpu')
-        self.get_min_val(id, 'mem')
-        self.get_min_val(id, 'download')
-        self.get_min_val(id, 'upload')
+            print(f"\n### Sawcap Resource Usage Stats ###")
+            print(f"\n  MAX")
+            self.get_max_val(id, 'cpu')
+            self.get_max_val(id, 'mem')
+            self.get_max_val(id, 'download')
+            self.get_max_val(id, 'upload')
 
-        print(f"\n  AVERAGE")
-        self.get_avg_resources(id, 'cpu')
-        self.get_avg_resources(id, 'mem')
-        self.get_avg_resources(id, 'download')
-        self.get_avg_resources(id, 'upload')
+            print(f"\n  MIN")
+            self.get_min_val(id, 'cpu')
+            self.get_min_val(id, 'mem')
+            self.get_min_val(id, 'download')
+            self.get_min_val(id, 'upload')
 
-        print(f"\n### Prediction Stats ###\n")
-        self.get_prediction_frequency(id)
+            print(f"\n  AVERAGE")
+            self.get_avg_resources(id, 'cpu')
+            self.get_avg_resources(id, 'mem')
+            self.get_avg_resources(id, 'download')
+            self.get_avg_resources(id, 'upload')
 
-        print(f"\n  AVERAGE")
-        self.get_avg_predictions(id, 'actual_cpu')
-        self.get_avg_predictions(id, 'predicted_cpu')
-        self.get_avg_predictions(id, 'actual_mem')
-        self.get_avg_predictions(id, 'predicted_mem')
+            print(f"\n### Prediction Stats ###\n")
+            self.get_prediction_frequency(id)
 
-        print(f"\n### Latency Stats ###\n")
-        self.get_latency_metrics(args.uniqueid, 'data_collection_latency')
-        self.get_latency_metrics(args.uniqueid, 'prediction_latency')
-        self.get_latency_metrics(args.uniqueid, 'ml_model_update_latency')
-        self.get_latency_metrics(args.uniqueid, 'anomaly_detection_latency')
+            print(f"\n  AVERAGE")
+            self.get_avg_predictions(id, 'actual_cpu')
+            self.get_avg_predictions(id, 'predicted_cpu')
+            self.get_avg_predictions(id, 'actual_mem')
+            self.get_avg_predictions(id, 'predicted_mem')
+
+            print(f"\n### Latency Stats ###\n")
+            self.get_latency_metrics(args.uniqueid, 'data_collection_latency')
+            self.get_latency_metrics(args.uniqueid, 'prediction_latency')
+            self.get_latency_metrics(args.uniqueid, 'ml_model_update_latency')
+            self.get_latency_metrics(args.uniqueid, 'anomaly_detection_latency')
 
     def get_max_val(self, id, metric):
         """
@@ -207,34 +213,37 @@ class MetricsQuery:
         data_points = list(result.get_points(measurement='sawcap_resource_consumption'))
         print(f"Max cpu for {id}: {data_points[0]['max']:.5f}")
 
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-uid", "--uniqueid", help="Unique Id of experiment")
+    parser.add_argument("-m", "--metric", help="Metric to look for cpu, mem, download, upload etc.")
+    parser.add_argument("-op", "--operation", help="Operation to perform max, min, avg, freq, latency etc.")
+    parser.add_argument("--all", help="Generate full report", default=False, action='store_true')
+    parser.add_argument("--test", help="Testing flag", default=False, action='store_true')
+    args = parser.parse_args()
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-uid", "--uniqueid", help="Unique Id of experiment")
-parser.add_argument("-m", "--metric", help="Metric to look for cpu, mem, download, upload etc.")
-parser.add_argument("-op", "--operation", help="Operation to perform max, min, avg, freq, latency etc.")
-parser.add_argument("--all", help="Generate full report", default=False, action='store_true')
-parser.add_argument("--test", help="Testing flag", default=False, action='store_true')
-args = parser.parse_args()
+    metrics_query = MetricsQuery()
 
-metrics_query = MetricsQuery()
+    original_stdout = sys.stdout
 
-if args.test:
-    metrics_query.test(args.uniqueid)
-    exit()
+    if args.test:
+        metrics_query.test(args.uniqueid)
+        exit()
 
-if args.all:
-    metrics_query.full_report(args.uniqueid)
-    exit()
+    if args.all:
+        metrics_query.full_report(args.uniqueid)
+        sys.stdout = original_stdout
+        exit()
 
-if args.operation == 'max':
-    metrics_query.get_max_val(args.uniqueid, args.metric)
-elif args.operation == 'min':
-    metrics_query.get_min_val(args.uniqueid, args.metric)
-elif args.operation == 'avg':
-    metrics_query.get_avg_resources(args.uniqueid, args.metric)
-elif args.operation == 'freq':
-    metrics_query.get_prediction_frequency(args.uniqueid)
-elif args.operation == 'latency':
-    metrics_query.get_latency_metrics(args.uniqueid, args.metric)
-else:
-    logging.error(f"Invalid input")
+    if args.operation == 'max':
+        metrics_query.get_max_val(args.uniqueid, args.metric)
+    elif args.operation == 'min':
+        metrics_query.get_min_val(args.uniqueid, args.metric)
+    elif args.operation == 'avg':
+        metrics_query.get_avg_resources(args.uniqueid, args.metric)
+    elif args.operation == 'freq':
+        metrics_query.get_prediction_frequency(args.uniqueid)
+    elif args.operation == 'latency':
+        metrics_query.get_latency_metrics(args.uniqueid, args.metric)
+    else:
+        logging.error(f"Invalid input")
