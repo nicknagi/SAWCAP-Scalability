@@ -2,6 +2,7 @@ import logging
 import socket
 import argparse
 from influxdb import InfluxDBClient
+from datetime import datetime
 
 class MetricsQuery:
     def __init__(self):
@@ -21,6 +22,9 @@ class MetricsQuery:
             logging.error(f"There was a problem connecting to InfluxDB at IP {ORCHESTRATOR_PRIVATE_IP} {e}")
             logging.info("Will not publish statistics")
 
+    def to_date(self, date):
+        return datetime.strptime(date,'%Y-%m-%dT%H:%M:%SZ')
+
     def get_max_val(self, id, metric):
         """
            id: uniqueId of experiment
@@ -33,7 +37,8 @@ class MetricsQuery:
             return
         t_start = experiment[0]
         t_end = experiment[1]
-        print(f"start: {t_start}, end: {t_end}")
+        print(f"start: {self.to_date(t_start)}, end: {self.to_date(t_end)}")
+        
         select_query = f'SELECT MAX("{metric}") from "sawcap_resource_consumption" WHERE time >= \'{t_start}\' AND time < \'{t_end}\';'
         result = self.client.query(select_query)
         data_points = list(result.get_points(measurement='sawcap_resource_consumption'))
@@ -51,14 +56,18 @@ class MetricsQuery:
             return
         t_start = experiment[0]
         t_end = experiment[1]
-        print(f"start: {t_start}, end: {t_end}")
+        print(f"start: {self.to_date(t_start)}, end: {self.to_date(t_end)}")
+
         select_query = f'SELECT MIN("{metric}") from "sawcap_resource_consumption" WHERE time >= \'{t_start}\' AND time < \'{t_end}\';'
         result = self.client.query(select_query)
         data_points = list(result.get_points(measurement='sawcap_resource_consumption'))
         print(f"Min {metric} for {id}: {data_points[0]['min']}")
 
-
     def get_avg_vals(self, id, metric):
+        """ Group averages by 5min intervals
+           id: uniqueId of experiment
+           metric: metric to look for (eg. 'cpu')
+        """
         if id in self.id_lookup.keys():
             experiment = self.id_lookup[id]
         else:
@@ -66,8 +75,9 @@ class MetricsQuery:
             return
         t_start = experiment[0]
         t_end = experiment[1]
-        print(f"start: {t_start}, end: {t_end}")
-        select_query = f'SELECT AVG("{metric}") from "sawcap_resource_consumption" WHERE (time >= \'{t_start}\' AND time < \'{t_end}\') GROUP BY time(5m);'        
+        print(f"start: {self.to_date(t_start)}, end: {self.to_date(t_end)}")
+
+        select_query = f'SELECT MEAN("{metric}") from "sawcap_resource_consumption" WHERE (time >= \'{t_start}\' AND time < \'{t_end}\') GROUP BY time(5m);'
         result = self.client.query(select_query)
         data_points = list(result.get_points(measurement='sawcap_resource_consumption'))
         for entry in data_points:
@@ -89,4 +99,3 @@ elif args.operation == 'avg':
     metrics_query.get_avg_vals(args.uniqueid, args.metric)
 else:
     logging.error(f"Invalid input")
-
