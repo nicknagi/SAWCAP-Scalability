@@ -2,7 +2,7 @@ import logging
 import socket
 import argparse
 from influxdb import InfluxDBClient
-from datetime import datetime
+from datetime import datetime, timezone
 
 class MetricsQuery:
     def __init__(self):
@@ -23,7 +23,10 @@ class MetricsQuery:
             logging.info("Will not publish statistics")
 
     def to_date(self, date):
-        return datetime.strptime(date,'%Y-%m-%dT%H:%M:%SZ')
+        return self.utc_to_local(datetime.strptime(date,'%Y-%m-%dT%H:%M:%SZ'))
+
+    def utc_to_local(self, utc_dt):
+        return utc_dt.replace(tzinfo=timezone.utc).astimezone(tz=None)
 
     def get_max_val(self, id, metric):
         """
@@ -38,7 +41,7 @@ class MetricsQuery:
         t_start = experiment[0]
         t_end = experiment[1]
         print(f"start: {self.to_date(t_start)}, end: {self.to_date(t_end)}")
-        
+
         select_query = f'SELECT MAX("{metric}") from "sawcap_resource_consumption" WHERE time >= \'{t_start}\' AND time < \'{t_end}\';'
         result = self.client.query(select_query)
         data_points = list(result.get_points(measurement='sawcap_resource_consumption'))
@@ -81,7 +84,7 @@ class MetricsQuery:
         result = self.client.query(select_query)
         data_points = list(result.get_points(measurement='sawcap_resource_consumption'))
         for entry in data_points:
-            print(f"{entry['time']}: {entry['mean']:.5f}")
+            print(f"{self.to_date(entry['time'])}: {entry['mean']:.5f}")
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-uid", "--uniqueid", help="Unique Id of experiment")
