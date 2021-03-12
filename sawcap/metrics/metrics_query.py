@@ -28,6 +28,36 @@ class MetricsQuery:
     def utc_to_local(self, utc_dt):
         return utc_dt.replace(tzinfo=timezone.utc).astimezone(tz=None)
 
+    def full_report(self, id):
+        if id in self.id_lookup.keys():
+            experiment = self.id_lookup[id]
+        else:
+            logging.error(f"Unique id '{id}' not found")
+            return
+        print(f"start: {self.to_date(experiment[0])}, end: {self.to_date( experiment[1])}")
+
+        print(f"\n### Prediction Stats ###")
+        self.get_prediction_frequency(id)
+
+        print(f"\n### Sawcap Resource Usage Stats ###")
+        print(f"\n MAX")
+        self.get_max_val(id, 'cpu')
+        self.get_max_val(id, 'mem')
+        self.get_max_val(id, 'download')
+        self.get_max_val(id, 'upload')
+
+        print(f"\n MIN")
+        self.get_min_val(id, 'cpu')
+        self.get_min_val(id, 'mem')
+        self.get_min_val(id, 'download')
+        self.get_min_val(id, 'upload')
+
+        print(f"\n AVERAGE")
+        self.get_avg_vals(id, 'cpu')
+        self.get_avg_vals(id, 'mem')
+        self.get_avg_vals(id, 'download')
+        self.get_avg_vals(id, 'upload')
+
     def get_max_val(self, id, metric):
         """
            id: uniqueId of experiment
@@ -40,7 +70,6 @@ class MetricsQuery:
             return
         t_start = experiment[0]
         t_end = experiment[1]
-        print(f"start: {self.to_date(t_start)}, end: {self.to_date(t_end)}")
 
         select_query = f'SELECT MAX("{metric}") from "sawcap_resource_consumption" WHERE time >= \'{t_start}\' AND time < \'{t_end}\';'
         result = self.client.query(select_query)
@@ -59,7 +88,6 @@ class MetricsQuery:
             return
         t_start = experiment[0]
         t_end = experiment[1]
-        print(f"start: {self.to_date(t_start)}, end: {self.to_date(t_end)}")
 
         select_query = f'SELECT MIN("{metric}") from "sawcap_resource_consumption" WHERE time >= \'{t_start}\' AND time < \'{t_end}\';'
         result = self.client.query(select_query)
@@ -78,13 +106,23 @@ class MetricsQuery:
             return
         t_start = experiment[0]
         t_end = experiment[1]
-        print(f"start: {self.to_date(t_start)}, end: {self.to_date(t_end)}")
 
+        # average per 5 min
         select_query = f'SELECT MEAN("{metric}") from "sawcap_resource_consumption" WHERE (time >= \'{t_start}\' AND time < \'{t_end}\') GROUP BY time(5m);'
         result = self.client.query(select_query)
         data_points = list(result.get_points(measurement='sawcap_resource_consumption'))
+        print(f"Average {metric} for {id} per 5 minutes")
         for entry in data_points:
             print(f"{self.to_date(entry['time'])}: {entry['mean']:.5f}")
+
+        # total average
+        select_query = f'SELECT MEAN("{metric}") from "sawcap_resource_consumption" WHERE (time >= \'{t_start}\' AND time < \'{t_end}\');'
+        result = self.client.query(select_query)
+        data_points = list(result.get_points(measurement='sawcap_resource_consumption'))
+        print(f"\nAverage {metric} for {id}")
+        print(f"{self.to_date(data_points[0]['time'])}: {data_points[0]['mean']:.5f}")
+
+        print("")
 
     def get_prediction_frequency(self, id):
         """ Get the frequency that sawcap makes cpu and mem predictions
@@ -97,7 +135,6 @@ class MetricsQuery:
             return
         t_start = experiment[0]
         t_end = experiment[1]
-        print(f"start: {self.to_date(t_start)}, end: {self.to_date(t_end)}")
 
         select_query_cpu_pred = f'SELECT COUNT("predicted_cpu") from "predictions" WHERE (time >= \'{t_start}\' AND time < \'{t_end}\');'
         result = self.client.query(select_query_cpu_pred)    
@@ -112,10 +149,15 @@ class MetricsQuery:
 parser = argparse.ArgumentParser()
 parser.add_argument("-uid", "--uniqueid", help="Unique Id of experiment")
 parser.add_argument("-m", "--metric", help="Metric to look for cpu, mem, download, upload etc.")
-parser.add_argument("-op", "--operation", help="Operation to perform max, min, avg etc.")
+parser.add_argument("-op", "--operation", help="Operation to perform max, min, avg, freq etc.")
+parser.add_argument("--all", help="Generate full report", default=False, action='store_true')
 args = parser.parse_args()
 
 metrics_query = MetricsQuery()
+
+if args.all:
+    metrics_query.full_report(args.uniqueid)
+    exit()
 
 if args.operation == 'max':
     metrics_query.get_max_val(args.uniqueid, args.metric)
