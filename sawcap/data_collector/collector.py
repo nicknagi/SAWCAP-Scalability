@@ -7,8 +7,8 @@ import logging
 class DataCollector:
 
     def __init__(self, workers):
-        self._workloads_history = {}
         self.workers = workers
+        self.prev_resource_values = [[0.0 for _ in range(NUM_RESOURCES)] for _ in range(len(workers))]
 
     def _parse_resource_agg(self, resource_agg):
         num_resources = NUM_RESOURCES
@@ -17,7 +17,19 @@ class DataCollector:
         for line in resource_agg:
             usages = line.split(',')
             for i in range(num_resources):
-                resource_usage[i] += float(usages[i])
+                # Handle case where line has issues either something like cpu,  or cpu,mem,bogus
+                if usages[i] == "" or len(usages) != num_resources:
+                    # Use previous value of the resource value for the worker
+                    resource_usage[i] += self.prev_resource_values[worker_index][i]
+                    logging.error(f"line has an issue, using previous value, here is the problematic line: {line}")
+                else:
+                    try:
+                        resource_usage[i] += float(usages[i])
+                        self.prev_resource_values[worker_index][i] = float(usages[i])
+                    except ValueError:
+                        # Handle any float conversion errors
+                        resource_usage[i] += self.prev_resource_values[worker_index][i]
+                        logging.error(f"line has an issue, using previous value, here is the problematic line: {line}")
 
         resource_usage = [float(i) / len(self.workers) for i in resource_usage]
 
