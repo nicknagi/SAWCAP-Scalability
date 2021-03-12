@@ -36,9 +36,6 @@ class MetricsQuery:
             return
         print(f"start: {self.to_date(experiment[0])}, end: {self.to_date( experiment[1])}")
 
-        nprint(f"\n### Prediction Stats ###\n")
-        self.get_prediction_frequency(id)
-
         print(f"\n### Sawcap Resource Usage Stats ###")
         print(f"\n  MAX")
         self.get_max_val(id, 'cpu')
@@ -53,10 +50,19 @@ class MetricsQuery:
         self.get_min_val(id, 'upload')
 
         print(f"\n  AVERAGE")
-        self.get_avg_vals(id, 'cpu')
-        self.get_avg_vals(id, 'mem')
-        self.get_avg_vals(id, 'download')
-        self.get_avg_vals(id, 'upload')
+        self.get_avg_resources(id, 'cpu')
+        self.get_avg_resources(id, 'mem')
+        self.get_avg_resources(id, 'download')
+        self.get_avg_resources(id, 'upload')
+
+        print(f"\n### Prediction Stats ###\n")
+        self.get_prediction_frequency(id)
+
+        print(f"\n  AVERAGE")
+        self.get_avg_predictions(id, 'actual_cpu')
+        self.get_avg_predictions(id, 'predicted_cpu')
+        self.get_avg_predictions(id, 'actual_mem')
+        self.get_avg_predictions(id, 'predicted_mem')
 
     def get_max_val(self, id, metric):
         """
@@ -90,7 +96,7 @@ class MetricsQuery:
         data_points = list(result.get_points(measurement='sawcap_resource_consumption'))
         print(f"Min {metric} for {id}: {data_points[0]['min']:.5f}")
 
-    def get_avg_vals(self, id, metric):
+    def get_avg_resources(self, id, metric):
         """ Group averages by 5min intervals
            id: uniqueId of experiment
            metric: metric to look for (eg. 'cpu')
@@ -117,6 +123,28 @@ class MetricsQuery:
         # data_points = list(result.get_points(measurement='sawcap_resource_consumption'))
         # print(f"\nAverage {metric} for {id}")
         # print(f"{self.to_date(data_points[0]['time'])}: {data_points[0]['mean']:.5f}")
+
+        print("")
+
+    def get_avg_predictions(self, id, metric):
+        """ Group averages by 5min intervals
+           id: uniqueId of experiment
+           metric: metric to look for (eg. 'cpu')
+        """
+        if id in self.id_lookup.keys():
+            experiment = self.id_lookup[id]
+        else:
+            logging.error(f"Unique id '{id}' not found")
+            return
+
+        # average per 5 min
+        select_query = f'SELECT MEAN("{metric}") from "predictions" WHERE host=\'runner-{id}\' GROUP BY time(5m);'
+        result = self.client.query(select_query)
+        data_points = list(result.get_points(measurement='predictions'))
+        print(f"  Average {metric} for {id} per 5 minutes")
+        for entry in data_points:
+            if entry['mean']:
+                print(f"{self.to_date(entry['time'])}: {entry['mean']:.5f}")
 
         print("")
 
@@ -176,7 +204,7 @@ if args.operation == 'max':
 elif args.operation == 'min':
     metrics_query.get_min_val(args.uniqueid, args.metric)
 elif args.operation == 'avg':
-    metrics_query.get_avg_vals(args.uniqueid, args.metric)
+    metrics_query.get_avg_resources(args.uniqueid, args.metric)
 elif args.operation == 'freq':
     metrics_query.get_prediction_frequency(args.uniqueid)
 else:
