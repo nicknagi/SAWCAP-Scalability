@@ -8,13 +8,6 @@ from datetime import datetime, timezone
 class MetricsQuery:
     def __init__(self):
         self.client = None
-        self.id_lookup = {
-            "baseline-test": ["2021-02-23T22:00:00Z", "2021-02-23T22:59:00Z"],
-            "ten-node-test": ["2021-02-23T22:15:00Z", "2021-02-23T22:53:00Z"],
-            "twenty-five-node-test": ["2021-03-04T19:39:00Z", "2021-03-04T20:19:00Z"],
-            "fifty-node-test": ["2021-03-04T21:23:00Z", "2021-03-04T21:55:00Z"],
-            "nn-test": ["2021-03-07T03:00:00Z", "2021-03-07T03:10:00Z"],
-        }
         try:
             self.client = InfluxDBClient( "192.168.0.3", 8086, database='metrics')
             self.client.create_database('metrics')
@@ -30,18 +23,10 @@ class MetricsQuery:
         return utc_dt.replace(tzinfo=timezone.utc).astimezone(tz=None)
 
     def full_report(self, id):
-        if id in self.id_lookup.keys():
-            experiment = self.id_lookup[id]
-        else:
-            logging.error(f"Unique id '{id}' not found")
-            return
-
         file = f'{id}_full_test_report.txt'
         with open(file, 'w') as f:
             sys.stdout = f
             
-            print(f"start: {self.to_date(experiment[0])}, end: {self.to_date( experiment[1])}")
-
             print(f"\n### Sawcap Resource Usage Stats ###")
             print(f"\n  MAX")
             self.get_max_val(id, 'cpu')
@@ -81,11 +66,6 @@ class MetricsQuery:
            id: uniqueId of experiment
            metric: metric to look for (eg. 'cpu')
         """
-        if id in self.id_lookup.keys():
-            experiment = self.id_lookup[id]
-        else:
-            logging.error(f"Unique id '{id}' not found")
-            return
 
         select_query = f'SELECT MAX("{metric}") from "sawcap_resource_consumption" WHERE host=\'runner-{id}\';'
         result = self.client.query(select_query)
@@ -97,11 +77,6 @@ class MetricsQuery:
            id: uniqueId of experiment
            metric: metric to look for (eg. 'cpu')
         """
-        if id in self.id_lookup.keys():
-            experiment = self.id_lookup[id]
-        else:
-            logging.error(f"Unique id '{id}' not found")
-            return
 
         select_query = f'SELECT MIN("{metric}") from "sawcap_resource_consumption" WHERE host=\'runner-{id}\';'
         result = self.client.query(select_query)
@@ -113,11 +88,6 @@ class MetricsQuery:
            id: uniqueId of experiment
            metric: metric to look for (eg. 'cpu')
         """
-        if id in self.id_lookup.keys():
-            experiment = self.id_lookup[id]
-        else:
-            logging.error(f"Unique id '{id}' not found")
-            return
 
         # average per 5 min
         select_query = f'SELECT MEAN("{metric}") from "sawcap_resource_consumption" WHERE host=\'runner-{id}\' GROUP BY time(5m);'
@@ -143,11 +113,6 @@ class MetricsQuery:
            id: uniqueId of experiment
            metric: metric to look for (eg. 'cpu')
         """
-        if id in self.id_lookup.keys():
-            experiment = self.id_lookup[id]
-        else:
-            logging.error(f"Unique id '{id}' not found")
-            return
 
         # average per 5 min
         select_query = f'SELECT MEAN("{metric}") from "predictions" WHERE host=\'runner-{id}\' GROUP BY time(5m);'
@@ -164,11 +129,6 @@ class MetricsQuery:
         """ Get the frequency that sawcap makes cpu and mem predictions
            id: uniqueId of experiment
         """
-        if id in self.id_lookup.keys():
-            experiment = self.id_lookup[id]
-        else:
-            logging.error(f"Unique id '{id}' not found")
-            return
 
         select_query_cpu_pred = f'SELECT COUNT("predicted_cpu") from "predictions" WHERE host=\'runner-{id}\';'
         result = self.client.query(select_query_cpu_pred)    
@@ -184,11 +144,6 @@ class MetricsQuery:
         """ Get the latency of sawcap metrics
            id: uniqueId of experiment
         """
-        if id in self.id_lookup.keys():
-            experiment = self.id_lookup[id]
-        else:
-            logging.error(f"Unique id '{id}' not found")
-            return
 
         # average per 5 min
         select_query = f'SELECT MEAN("latency") from "{metric}" WHERE host=\'runner-{id}\' GROUP BY time(5m);'
@@ -202,12 +157,6 @@ class MetricsQuery:
         print("")
 
     def test(self, id):
-        if id in self.id_lookup.keys():
-            experiment = self.id_lookup[id]
-        else:
-            logging.error(f"Unique id '{id}' not found")
-            return
-
         select_query = f'SELECT * from "sawcap_resource_consumption" WHERE host=\'runner-{id}\';'
         result = self.client.query(select_query)
         data_points = list(result.get_points(measurement='sawcap_resource_consumption'))
