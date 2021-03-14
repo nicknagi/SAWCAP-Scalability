@@ -14,7 +14,7 @@ class DataCollector:
         num_resources = NUM_RESOURCES
         resource_usage = [0] * num_resources
 
-        for line in resource_agg:
+        for worker_index, line in enumerate(resource_agg):
             usages = line.split(',')
             for i in range(num_resources):
                 # Handle case where line has issues either something like cpu,  or cpu,mem,bogus
