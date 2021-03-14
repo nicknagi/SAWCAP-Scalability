@@ -171,3 +171,11 @@ python3 graph_comparison.py [-h] --dir_name DIR_NAME --stats STATS --stat_files
 python graph_comparison.py --dir_name ~/Desktop/capstone/sawcap --stats CPU,MEM --stat_files sawcap_stats.txt 
                            --algos lasso --save_path ~/Desktop/capstone/sawcap/
 ```
+
+### Generate reports comprising of max, min and average of metrics
+The metrics includes cpu, memory, latency, upload, download speed as well as the frequency of predictions.
+
+Generate report of all metrics:
+```
+python3 metrics_query.py -uid <unique-id-of-experiment> --all
+```
