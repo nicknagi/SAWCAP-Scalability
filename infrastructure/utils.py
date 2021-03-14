@@ -236,6 +236,9 @@ def modify_num_iters_runner(runner_private_ip, num_iter):
 
 
 def add_prometheus_conf_orchestrator(node_ips, uniqueid):
+    # When running extend with 0 new nodes
+    if len(node_ips) == 0:
+        return
     filename = "/etc/prometheus/prometheus.yml"
     f = open(filename, "r")
     contents = f.readlines()
