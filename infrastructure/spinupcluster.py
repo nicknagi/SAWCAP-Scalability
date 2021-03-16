@@ -10,7 +10,7 @@ from datetime import timedelta
 import digitalocean
 
 from utils import add_hosts_entries, write_slaves_file_on_master, remove_hosts_entry, \
-    run_hadoop, modify_bashrc_runner, modify_capstone_worker_configs_runner, update_capstone_repo, \
+    run_hadoop, modify_bashrc_runner, modify_capstone_configs_file_on_runner, update_capstone_repo, \
     modify_spark_conf_runner, try_ssh, \
     modify_capstone_original_code_slaves_runner, modify_hibench_conf_runner, run_data_collection, start_monitoring, \
     modify_num_iters_runner, \
@@ -38,7 +38,10 @@ parser.add_argument("--git_branch", type=str,
                     help="branch to be cloned on all machines in cluster", default="main")
 parser.add_argument("--start_data_collection", help="start data collection script on cluster, also starts monitoring",
                     type=str)
-parser.add_argument("-e", "--extend", action="store_true", help="Extend an existing cluster instead of creating a new cluster.")
+parser.add_argument("-e", "--extend", action="store_true", help="Extend an existing cluster instead of creating a new "
+                                                                "cluster.")
+parser.add_argument("--experiment_name", type=str,
+                    help="Name of the experiment to be run", default="default-experiment")
 args = parser.parse_args()
 
 num_workers = args.numworkers
@@ -328,7 +331,7 @@ logger.info(f"Updated runner capstone repo")
 
 # Modify capstone files
 workers = [worker_droplet.private_ip_address for worker_droplet in worker_droplets]
-modify_capstone_worker_configs_runner(runner_droplet.private_ip_address, workers)
+modify_capstone_configs_file_on_runner(runner_droplet.private_ip_address, workers, args.experiment_name)
 modify_capstone_original_code_slaves_runner(runner_droplet.private_ip_address, workers)
 logger.info("Modified runner config.py and servers in detect_anomaly.py")
 

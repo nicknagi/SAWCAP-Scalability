@@ -4,7 +4,7 @@ import socket
 import numpy as np
 from influxdb import InfluxDBClient
 
-from config import ORCHESTRATOR_PRIVATE_IP
+from config import ORCHESTRATOR_PRIVATE_IP, EXPERIMENT_NAME
 
 
 class MetricsPublisher:
@@ -14,6 +14,11 @@ class MetricsPublisher:
             self.client = InfluxDBClient(ORCHESTRATOR_PRIVATE_IP, 8086, database='metrics')
             self.client.create_database('metrics')
             self.hostname = str(socket.getfqdn())
+            self.tags = {
+                    "host": self.hostname,
+                    "experiment_name": EXPERIMENT_NAME
+                }
+
         except Exception as e:
             logging.error(f"There was a problem connecting to InfluxDB at IP {ORCHESTRATOR_PRIVATE_IP} {e}")
             logging.info("Will not publish statistics")
@@ -23,9 +28,7 @@ class MetricsPublisher:
         json_body = [
             {
                 "measurement": "predictions",
-                "tags": {
-                    "host": self.hostname
-                },
+                "tags": self.tags,
                 "fields": {
                     "actual_cpu": float(actual[0]),
                     "actual_mem": float(actual[1]),
@@ -43,9 +46,7 @@ class MetricsPublisher:
         json_body = [
             {
                 "measurement": "accuracy",
-                "tags": {
-                    "host": self.hostname
-                },
+                "tags": self.tags,
                 "fields": {
                     "acc_cpu": float(acc_cpu),
                     "acc_mem": float(acc_mem)
@@ -59,9 +60,7 @@ class MetricsPublisher:
         json_body = [
             {
                 "measurement": measurement,
-                "tags": {
-                    "host": self.hostname
-                },
+                "tags": self.tags,
                 "fields": fields_data
             }
         ]

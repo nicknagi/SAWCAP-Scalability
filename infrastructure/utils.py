@@ -130,12 +130,17 @@ def modify_bashrc_runner(runner_private_ip):
     write_file_via_sftp(runner_private_ip, filename, contents)
 
 
-def modify_capstone_worker_configs_runner(runner_private_ip, workers):
+def modify_capstone_configs_file_on_runner(runner_private_ip, workers, experiment_name):
     filename = "/home/ubuntu/capstone/sawcap/config.py"
     contents = read_file_via_sftp(runner_private_ip, filename)
 
     keyword = "WORKERS "
     replacement = f"WORKERS = {workers}\n"
+
+    contents = _find_and_replace_line(keyword, replacement, contents)
+
+    keyword = "EXPERIMENT_NAME "
+    replacement = f"EXPERIMENT_NAME = '{experiment_name}'\n"
 
     contents = _find_and_replace_line(keyword, replacement, contents)
 
@@ -275,7 +280,8 @@ def remove_prometheus_conf_orchestrator(uniqueid):
 
 def run_data_collection(runner_private_ip):
     logger.info(f"Starting data collection script")
-    command = "(. ./.environment_export; cd /home/ubuntu/capstone/scripts; /usr/bin/bash run_workloads_in_background.sh 1 > /dev/null 2>&1) &"
+    command = "(. ./.environment_export; cd /home/ubuntu/capstone/scripts; /usr/bin/bash " \
+              "run_workloads_in_background.sh 1 > /dev/null 2>&1) & "
 
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
