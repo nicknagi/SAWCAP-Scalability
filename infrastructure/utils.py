@@ -280,7 +280,8 @@ def remove_prometheus_conf_orchestrator(uniqueid):
 
 def run_data_collection(runner_private_ip):
     logger.info(f"Starting data collection script")
-    command = "(. ./.environment_export; cd /home/ubuntu/capstone/scripts; /usr/bin/bash run_workloads_in_background.sh 1 > /dev/null 2>&1) &"
+    command = "(. ./.environment_export; cd /home/ubuntu/capstone/scripts; /usr/bin/bash " \
+              "run_workloads_in_background.sh 1 > /dev/null 2>&1) & "
 
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
