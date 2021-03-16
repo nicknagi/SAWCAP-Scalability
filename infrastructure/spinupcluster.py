@@ -42,6 +42,7 @@ parser.add_argument("-e", "--extend", action="store_true", help="Extend an exist
                                                                 "cluster.")
 parser.add_argument("--experiment_name", type=str,
                     help="Name of the experiment to be run", default="default-experiment")
+parser.add_argument("-roc", "--run_original_code", action="store_true", help="Run the original code", default=False)
 args = parser.parse_args()
 
 num_workers = args.numworkers
@@ -49,7 +50,7 @@ token = os.getenv("DIGITALOCEAN_ACCESS_TOKEN")
 
 # Set the VM size depending on workload size
 VM_SIZE = "s-2vcpu-2gb"
-if args.workload_scale == "large":
+if args.workload_scale in ["large", "huge"]:
     VM_SIZE = "s-4vcpu-8gb"
 
 REGION = "tor1"
@@ -68,7 +69,7 @@ worker_names = [
 manager = digitalocean.Manager(token=token)
 keys = manager.get_all_sshkeys()
 
-if args.workload_scale not in ["tiny", "small", "large"]:
+if args.workload_scale not in ["tiny", "small", "large", "huge"]:
     print("Invalid workload scale type!")
     sys.exit(1)
 
@@ -376,7 +377,7 @@ if args.start_data_collection is not None:
     time.sleep(5)
 
     modify_num_iters_runner(runner_droplet.private_ip_address, args.start_data_collection)
-    run_data_collection(runner_droplet.private_ip_address)
+    run_data_collection(runner_droplet.private_ip_address, args.run_original_code)
 
 logger.info(f"Done setting up cluster! - hadoop ui: http://{master_droplet.ip_address}:8069")
 
