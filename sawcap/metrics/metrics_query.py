@@ -4,12 +4,14 @@ import argparse
 import sys
 from influxdb import InfluxDBClient
 from datetime import datetime, timezone
+from config import ORCHESTRATOR_PRIVATE_IP
+
 
 class MetricsQuery:
     def __init__(self):
         self.client = None
         try:
-            self.client = InfluxDBClient( "192.168.0.3", 8086, database='metrics')
+            self.client = InfluxDBClient("192.168.0.3", 8086, database='metrics')
             self.client.create_database('metrics')
             self.hostname = str(socket.getfqdn())
         except Exception as e:
@@ -17,7 +19,7 @@ class MetricsQuery:
             logging.info("Will not publish statistics")
 
     def to_date(self, date):
-        return self.utc_to_local(datetime.strptime(date,'%Y-%m-%dT%H:%M:%SZ'))
+        return self.utc_to_local(datetime.strptime(date, '%Y-%m-%dT%H:%M:%SZ'))
 
     def utc_to_local(self, utc_dt):
         return utc_dt.replace(tzinfo=timezone.utc).astimezone(tz=None)
@@ -26,7 +28,7 @@ class MetricsQuery:
         file = f'{id}_full_test_report.txt'
         with open(file, 'w') as f:
             sys.stdout = f
-            
+
             print(f"\n### Sawcap Resource Usage Stats ###")
             print(f"\n  MAX")
             self.get_max_val(id, 'cpu')
@@ -67,7 +69,8 @@ class MetricsQuery:
            metric: metric to look for (eg. 'cpu')
         """
 
-        select_query = f'SELECT MAX("{metric}") from "sawcap_resource_consumption" WHERE host=\'runner-{id}\';'
+        select_query = f'SELECT MAX("{metric}") from "sawcap_resource_consumption" WHERE host=\'runner-{id}\'' \
+                       f' and experiment_name=\'{args.experiment_name}\';'
         result = self.client.query(select_query)
         data_points = list(result.get_points(measurement='sawcap_resource_consumption'))
         print(f"Max {metric} for {id}: {data_points[0]['max']:.5f}")
@@ -78,7 +81,8 @@ class MetricsQuery:
            metric: metric to look for (eg. 'cpu')
         """
 
-        select_query = f'SELECT MIN("{metric}") from "sawcap_resource_consumption" WHERE host=\'runner-{id}\';'
+        select_query = f'SELECT MIN("{metric}") from "sawcap_resource_consumption" WHERE host=\'runner-{id}\'' \
+                       f' and experiment_name=\'{args.experiment_name}\';'
         result = self.client.query(select_query)
         data_points = list(result.get_points(measurement='sawcap_resource_consumption'))
         print(f"Min {metric} for {id}: {data_points[0]['min']:.5f}")
@@ -90,7 +94,8 @@ class MetricsQuery:
         """
 
         # average per 5 min
-        select_query = f'SELECT MEAN("{metric}") from "sawcap_resource_consumption" WHERE host=\'runner-{id}\' GROUP BY time(5m);'
+        select_query = f'SELECT MEAN("{metric}") from "sawcap_resource_consumption" WHERE host=\'runner-{id}\'' \
+                       f' and experiment_name=\'{args.experiment_name}\' GROUP BY time(5m);'
         result = self.client.query(select_query)
         data_points = list(result.get_points(measurement='sawcap_resource_consumption'))
         print(f"  Average {metric} for {id} per 5 minutes")
@@ -115,14 +120,15 @@ class MetricsQuery:
         """
 
         # average per 5 min
-        select_query = f'SELECT MEAN("{metric}") from "predictions" WHERE host=\'runner-{id}\' GROUP BY time(5m);'
+        select_query = f'SELECT MEAN("{metric}") from "predictions" WHERE host=\'runner-{id}\'' \
+                       f' and experiment_name=\'{args.experiment_name}\' GROUP BY time(5m);'
         result = self.client.query(select_query)
         data_points = list(result.get_points(measurement='predictions'))
         print(f"  Average {metric} for {id} per 5 minutes")
         for entry in data_points:
             if entry['mean']:
                 print(f"{self.to_date(entry['time'])}: {entry['mean']:.5f}")
-        
+
         print("")
 
     def get_prediction_frequency(self, id):
@@ -130,13 +136,15 @@ class MetricsQuery:
            id: uniqueId of experiment
         """
 
-        select_query_cpu_pred = f'SELECT COUNT("predicted_cpu") from "predictions" WHERE host=\'runner-{id}\';'
-        result = self.client.query(select_query_cpu_pred)    
+        select_query_cpu_pred = f'SELECT COUNT("predicted_cpu") from "predictions" WHERE host=\'runner-{id}\'' \
+                                f' and experiment_name=\'{args.experiment_name}\';'
+        result = self.client.query(select_query_cpu_pred)
         data_points = list(result.get_points(measurement='predictions'))
         print(f"Number of cpu predictions for {id}: {data_points[0]['count']}")
 
-        select_query_mem_pred = f'SELECT COUNT("predicted_mem") from "predictions" WHERE host=\'runner-{id}\';'
-        result = self.client.query(select_query_mem_pred)    
+        select_query_mem_pred = f'SELECT COUNT("predicted_mem") from "predictions" WHERE host=\'runner-{id}\'' \
+                                f' and experiment_name=\'{args.experiment_name}\';'
+        result = self.client.query(select_query_mem_pred)
         data_points = list(result.get_points(measurement='predictions'))
         print(f"Number of mem predictions for {id}: {data_points[0]['count']}")
 
@@ -146,7 +154,8 @@ class MetricsQuery:
         """
 
         # average per 5 min
-        select_query = f'SELECT MEAN("latency") from "{metric}" WHERE host=\'runner-{id}\' GROUP BY time(5m);'
+        select_query = f'SELECT MEAN("latency") from "{metric}" WHERE host=\'runner-{id}\'' \
+                       f' and experiment_name=\'{args.experiment_name}\' GROUP BY time(5m);'
         result = self.client.query(select_query)
         data_points = list(result.get_points(measurement=metric))
         print(f"  Average {metric} (seconds) for {id} per 5 minutes")
@@ -157,10 +166,12 @@ class MetricsQuery:
         print("")
 
     def test(self, id):
-        select_query = f'SELECT * from "sawcap_resource_consumption" WHERE host=\'runner-{id}\';'
+        select_query = f"SELECT * from \"sawcap_resource_consumption\" WHERE host='runner-{id}'" \
+                       f" and experiment_name='{args.experiment_name}';"
         result = self.client.query(select_query)
         data_points = list(result.get_points(measurement='sawcap_resource_consumption'))
         print(f"Max cpu for {id}: {data_points[0]['max']:.5f}")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -168,6 +179,8 @@ if __name__ == "__main__":
     parser.add_argument("-m", "--metric", help="Metric to look for cpu, mem, download, upload etc.")
     parser.add_argument("-op", "--operation", help="Operation to perform max, min, avg, freq, latency etc.")
     parser.add_argument("--all", help="Generate full report", default=False, action='store_true')
+    parser.add_argument("--experiment_name", help="Name of the experiment to generate report for",
+                        default="default-experiment", type=str)
     parser.add_argument("--test", help="Testing flag", default=False, action='store_true')
     args = parser.parse_args()
 

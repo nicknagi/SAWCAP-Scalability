@@ -14,3 +14,4 @@ ANOMALY_DETECTION_ENABLED = True
 LOCAL_DATA_DIR = "/home/ubuntu/data"  # location on the runner where data should be stored
 ORCHESTRATOR_PRIVATE_IP = "192.168.0.3"  # Used for metrics publishing
 WORKER_DATA_API_PORT = 8690
+EXPERIMENT_NAME = "default-experiment"

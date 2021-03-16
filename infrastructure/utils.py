@@ -130,12 +130,17 @@ def modify_bashrc_runner(runner_private_ip):
     write_file_via_sftp(runner_private_ip, filename, contents)
 
 
-def modify_capstone_worker_configs_runner(runner_private_ip, workers):
+def modify_capstone_configs_file_on_runner(runner_private_ip, workers, experiment_name):
     filename = "/home/ubuntu/capstone/sawcap/config.py"
     contents = read_file_via_sftp(runner_private_ip, filename)
 
     keyword = "WORKERS "
     replacement = f"WORKERS = {workers}\n"
+
+    contents = _find_and_replace_line(keyword, replacement, contents)
+
+    keyword = "EXPERIMENT_NAME "
+    replacement = f"EXPERIMENT_NAME = {experiment_name}\n"
 
     contents = _find_and_replace_line(keyword, replacement, contents)
 
