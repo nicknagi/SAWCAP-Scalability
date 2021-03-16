@@ -102,15 +102,6 @@ class MetricsQuery:
         for entry in data_points:
             if entry['mean']:
                 print(f"{self.to_date(entry['time'])}: {entry['mean']:.5f}")
-
-        # TODO: doesn't work because it contains NONE 
-        # total average
-        # select_query = f'SELECT MEAN("{metric}") from "sawcap_resource_consumption" WHERE host=\'runner-{id}\' GROUP BY time(5m);'
-        # result = self.client.query(select_query)
-        # data_points = list(result.get_points(measurement='sawcap_resource_consumption'))
-        # print(f"\nAverage {metric} for {id}")
-        # print(f"{self.to_date(data_points[0]['time'])}: {data_points[0]['mean']:.5f}")
-
         print("")
 
     def get_avg_predictions(self, id, metric):
