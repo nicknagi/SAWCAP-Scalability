@@ -140,7 +140,7 @@ def modify_capstone_configs_file_on_runner(runner_private_ip, workers, experimen
     contents = _find_and_replace_line(keyword, replacement, contents)
 
     keyword = "EXPERIMENT_NAME "
-    replacement = f"EXPERIMENT_NAME = {experiment_name}\n"
+    replacement = f"EXPERIMENT_NAME = '{experiment_name}'\n"
 
     contents = _find_and_replace_line(keyword, replacement, contents)
 
