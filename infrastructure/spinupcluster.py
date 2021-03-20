@@ -326,11 +326,8 @@ def setup_worker(worker_droplet_to_setup):
     write_hadoop_configs(parser_arguments.workload_scale, worker_droplet_to_setup.private_ip_address)
     logger.info(f"Modified {worker_droplet_to_setup.name} Hadoop Configs")
 
-    # Prevent too many consecutive requests
-    time.sleep(1)
 
-
-batch_size = 3
+batch_size = min(len(worker_droplets), 10)
 # Setup all workers
 # Weird bug fix as per issue: https://bugs.python.org/issue35629
 with contextlib.closing(mp.Pool(batch_size)) as pool:
