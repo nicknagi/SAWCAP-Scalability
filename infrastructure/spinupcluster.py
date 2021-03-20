@@ -9,6 +9,7 @@ from datetime import timedelta
 import contextlib
 
 import digitalocean
+import backoff
 
 from utils import add_hosts_entries, write_slaves_file_on_master, remove_hosts_entry, \
     run_hadoop, modify_bashrc_runner, modify_capstone_configs_file_on_runner, update_capstone_repo, \
@@ -27,6 +28,9 @@ formatter = logging.Formatter(fmt="[%(asctime)s] p%(process)s {%(pathname)s:%(li
 stdout_handler.setFormatter(formatter)
 logger.addHandler(stdout_handler)
 logger.setLevel(logging.DEBUG)
+
+# Setup backoff library logger
+logging.getLogger('backoff').addHandler(logging.StreamHandler(sys.stdout))
 
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument("-n", "--numworkers", type=int,
@@ -77,14 +81,18 @@ if parser_arguments.workload_scale not in ["tiny", "small", "large", "huge"]:
 # -----------------------------  Utility Functions ---------------------------------------------
 
 
-# Function used to wrap any digitalocean API calls to implement rudimentary rate limiting
+def backoff_hdlr(details):
+    wait = details["wait"]
+    args = details["args"]
+    kwargs = details["kwargs"]
+    tries = details["tries"]
+    logger.info(f"Backing off {wait:0.1f} seconds afters {tries} tries "
+           f"calling function {args[0].__name__} with args {args[1:]} and kwargs "
+           f"{kwargs}")
+
+# Function used to wrap any digitalocean API calls to implement backoff when too many API requests
+@backoff.on_exception(backoff.expo, digitalocean.DataReadError, max_time=300, on_backoff=backoff_hdlr)
 def wrap_digitalocean_call(func, *args, **kwargs):
-    # manager.get_account()
-    '''
-    IDEA:
-    1. Make request
-    2. Use backoff library if exception thrown, to retry later
-    '''
     return func(*args, **kwargs)
 
 
