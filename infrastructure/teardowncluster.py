@@ -7,6 +7,7 @@ import digitalocean
 from utils import remove_prometheus_conf_orchestrator
 import backoff
 import logging
+import sys
 
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument("--uniqueid", type=str,
