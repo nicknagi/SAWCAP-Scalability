@@ -56,9 +56,13 @@ class DataCollector:
 
         threaddump_agg = []
         resource_agg = []
-
-        with mp.Pool(min(len(self.workers), 10)) as pool:
-            worker_data_json = pool.map(get_data_from_worker, self.workers)
+        if len(self.workers) >= 10:
+            with mp.Pool(min(int(len(self.workers)/5), 10)) as pool:
+                worker_data_json = pool.map(get_data_from_worker, self.workers)
+        else:
+            worker_data_json = []
+            for worker in self.workers:
+                worker_data_json.append(get_data_from_worker(worker))
 
         for data in worker_data_json:
             threaddump_agg.extend(data["threaddump_data"])
