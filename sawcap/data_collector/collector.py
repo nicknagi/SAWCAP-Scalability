@@ -2,6 +2,17 @@ import os
 import requests
 from config import DATA_DIR, NUM_RESOURCES, LOCAL_DATA_DIR, WORKER_DATA_API_PORT
 import logging
+import multiprocessing as mp
+
+
+def get_data_from_worker(worker_address):
+    worker_data_response = requests.get(f"http://{worker_address}:{WORKER_DATA_API_PORT}/worker_data")
+    if worker_data_response.status_code != 200:
+        logging.error(f"Error collecting data from worker: {worker_address}")
+        raise ConnectionError(f"Could not connect to worker: {worker_address}")
+    else:
+        worker_data = worker_data_response.json()
+        return worker_data
 
 
 class DataCollector:
@@ -43,18 +54,12 @@ class DataCollector:
         threaddump_agg = []
         resource_agg = []
 
-        # fetch new data
-        for s in self.workers:
-            worker_data_response = requests.get(f"http://{s}:{WORKER_DATA_API_PORT}/worker_data")
+        with mp.Pool(min(len(self.workers), 10)) as pool:
+            worker_data_json = pool.map(get_data_from_worker, self.workers)
 
-            # All workers should be able to send data, if not raise an Error
-            if worker_data_response.status_code != 200:
-                logging.error(f"Error collecting data from worker: {s}")
-                raise ConnectionError(f"Could not connect to worker: {s}")
-            else:
-                worker_data = worker_data_response.json()
-                threaddump_agg.extend(worker_data["threaddump_data"])
-                resource_agg.append(worker_data["resource_data"])
+        for data in worker_data_json:
+            threaddump_agg.extend(data["threaddump_data"])
+            resource_agg.append(data["resource_data"])
 
         resource_agg = self._parse_resource_agg(resource_agg)
         functions = [i.strip() for i in threaddump_agg]
