@@ -5,6 +5,9 @@ import os
 import digitalocean
 
 from utils import remove_prometheus_conf_orchestrator
+import backoff
+import logging
+import sys
 
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument("--uniqueid", type=str,
@@ -37,9 +40,17 @@ remove_prometheus_conf_orchestrator(name_suffix)
 os.system("sudo service prometheus restart")
 print("Removed prometheus configuration")
 
-manager = digitalocean.Manager(token=token)
-my_droplets = manager.get_all_droplets()
-for droplet in my_droplets:
-    if droplet.name in droplets_to_remove:
-        droplet.destroy()
-        print(f"Droplet {droplet.name} destroyed")
+# Setup backoff library logger
+logging.getLogger('backoff').addHandler(logging.StreamHandler(sys.stdout))
+
+@backoff.on_exception(backoff.expo, digitalocean.DataReadError, max_time=300)
+def remove_all_droplets():
+    manager = digitalocean.Manager(token=token)
+    my_droplets = manager.get_all_droplets()
+    for droplet in my_droplets:
+        if droplet.name in droplets_to_remove:
+            droplet.destroy()
+            print(f"Droplet {droplet.name} destroyed")
+
+# Remove all droplets in cluster
+remove_all_droplets()
