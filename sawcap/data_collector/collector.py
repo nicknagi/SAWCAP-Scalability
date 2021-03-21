@@ -18,6 +18,12 @@ def get_data_from_worker(worker_address):
         return worker_data
 
 
+def get_data_in_parallel(workers):
+    with mp.Pool(min(int(len(workers) / 5), 10)) as pool:
+        worker_data_json = pool.map(get_data_from_worker, workers)
+        return worker_data_json
+
+
 class DataCollector:
 
     def __init__(self, workers):
@@ -50,15 +56,10 @@ class DataCollector:
         return resource_usage
 
     def get_data_from_workers(self):
-        # this function connects to the servers, fetches the threaddump, aggregates
-        # them and extract threaddump and resource usage information from them
-        # returns a list containing the threaddump and resource info
-
         threaddump_agg = []
         resource_agg = []
         if len(self.workers) >= 10:
-            with mp.Pool(min(int(len(self.workers)/5), 10)) as pool:
-                worker_data_json = pool.map(get_data_from_worker, self.workers)
+            worker_data_json = get_data_in_parallel(self.workers)
         else:
             worker_data_json = []
             for worker in self.workers:
