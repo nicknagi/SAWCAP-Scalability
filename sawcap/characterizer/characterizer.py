@@ -56,6 +56,11 @@ class Characterizer:
         if phase_changed:
             common_functions = curr_snapshot.stacktrace_data
         phase_string = ""
+        functions_list = []
         for function in common_functions:
+            functions_list.append(function)
+
+        functions_sorted = sorted(functions_list)
+        for function in functions_sorted:
             phase_string += str(function) + "->"
         return phase_string
