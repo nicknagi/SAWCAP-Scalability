@@ -1,6 +1,5 @@
-import os
 import requests
-from config import DATA_DIR, NUM_RESOURCES, LOCAL_DATA_DIR, WORKER_DATA_API_PORT
+from config import NUM_RESOURCES, WORKER_DATA_API_PORT
 import logging
 import multiprocessing as mp
 
