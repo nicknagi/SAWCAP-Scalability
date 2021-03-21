@@ -2,6 +2,11 @@ import requests
 from config import NUM_RESOURCES, WORKER_DATA_API_PORT
 import logging
 import multiprocessing as mp
+import signal
+
+
+def init_worker():
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
 
 
 def get_data_from_worker(worker_address):
@@ -19,7 +24,7 @@ def get_data_from_worker(worker_address):
 
 
 def get_data_in_parallel(workers):
-    with mp.Pool(min(int(len(workers) / 5), 10)) as pool:
+    with mp.Pool(min(int(len(workers) / 5), 10), init_worker) as pool:
         worker_data_json = pool.map(get_data_from_worker, workers)
         return worker_data_json
 
