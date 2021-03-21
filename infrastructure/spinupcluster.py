@@ -6,7 +6,6 @@ import os
 import sys
 import time
 from datetime import timedelta
-import contextlib
 
 import digitalocean
 import backoff
@@ -327,10 +326,8 @@ def setup_worker(worker_droplet_to_setup):
     logger.info(f"Modified {worker_droplet_to_setup.name} Hadoop Configs")
 
 
-batch_size = min(len(worker_droplets), 5)
-# Setup all workers
-# Weird bug fix as per issue: https://bugs.python.org/issue35629
-with contextlib.closing(mp.Pool(batch_size)) as pool:
+num_procs_for_spinning_workers = min(len(worker_droplets), 5)
+with mp.Pool(num_procs_for_spinning_workers) as pool:
     pool.map(setup_worker, worker_droplets)
 
 # ---------------------------- Run Hadoop On Master (Which starts workers as well) -------------------------------------
