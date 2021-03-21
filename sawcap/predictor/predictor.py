@@ -27,13 +27,16 @@ class Predictor:
 
         # if phase does not exist yet, return prev1
         if not self.database.check_phase_exists(cur_phase):
+            logging.debug("Phase does not exist, prediction prev1")
             return self.prev1_resource, phase_exists
 
         phase_exists = True
         # if no model has been built yet, just use naive prediction
         if len(self.database.get_models_from_phase(cur_phase)) == 0:
+            logging.debug("Phase exists but no model built, prediction prev1")
             return self.prev1_resource, phase_exists
         else:
+            logging.debug(f"Making prediction using {self.algo}")
             return self._prediction_helper(cur_phase), phase_exists
 
     @publish_latency("ml_model_update_latency")
