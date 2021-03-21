@@ -1,7 +1,33 @@
-import os
 import requests
-from config import DATA_DIR, NUM_RESOURCES, LOCAL_DATA_DIR, WORKER_DATA_API_PORT
+from config import NUM_RESOURCES, WORKER_DATA_API_PORT
 import logging
+import multiprocessing as mp
+import signal
+
+
+def init_worker():
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+    signal.signal(signal.SIGTERM, signal.SIG_DFL)
+
+
+def get_data_from_worker(worker_address):
+    try:
+        worker_data_response = requests.get(f"http://{worker_address}:{WORKER_DATA_API_PORT}/worker_data", timeout=2)
+    except requests.Timeout:
+        logging.error(f"Request to {worker_address} took too long, timing out and returning")
+        return {"threaddump_data": [""], "resource_data": "0,0"}
+    if worker_data_response.status_code != 200:
+        logging.error(f"Error collecting data from worker: {worker_address}")
+        raise ConnectionError(f"Could not connect to worker: {worker_address}")
+    else:
+        worker_data = worker_data_response.json()
+        return worker_data
+
+
+def get_data_in_parallel(workers):
+    with mp.Pool(min(int(len(workers) / 5), 10), init_worker) as pool:
+        worker_data_json = pool.map(get_data_from_worker, workers)
+        return worker_data_json
 
 
 class DataCollector:
@@ -36,25 +62,18 @@ class DataCollector:
         return resource_usage
 
     def get_data_from_workers(self):
-        # this function connects to the servers, fetches the threaddump, aggregates
-        # them and extract threaddump and resource usage information from them
-        # returns a list containing the threaddump and resource info
-
         threaddump_agg = []
         resource_agg = []
+        if len(self.workers) >= 10:
+            worker_data_json = get_data_in_parallel(self.workers)
+        else:
+            worker_data_json = []
+            for worker in self.workers:
+                worker_data_json.append(get_data_from_worker(worker))
 
-        # fetch new data
-        for s in self.workers:
-            worker_data_response = requests.get(f"http://{s}:{WORKER_DATA_API_PORT}/worker_data")
-
-            # All workers should be able to send data, if not raise an Error
-            if worker_data_response.status_code != 200:
-                logging.error(f"Error collecting data from worker: {s}")
-                raise ConnectionError(f"Could not connect to worker: {s}")
-            else:
-                worker_data = worker_data_response.json()
-                threaddump_agg.extend(worker_data["threaddump_data"])
-                resource_agg.append(worker_data["resource_data"])
+        for data in worker_data_json:
+            threaddump_agg.extend(data["threaddump_data"])
+            resource_agg.append(data["resource_data"])
 
         resource_agg = self._parse_resource_agg(resource_agg)
         functions = [i.strip() for i in threaddump_agg]

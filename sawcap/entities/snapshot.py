@@ -1,7 +1,7 @@
 # Class for representing a snapshot entity
 class Snapshot:
     # Inputs:
-    #   resource_data: list of floats represeting resource usages -- cpu, mem etc., type: list (of floats)
+    #   resource_data: list of floats representing resource usages -- cpu, mem etc., type: list (of floats)
     #   stacktrace_data: list of strings representing individual functions in stacktrace, type: set (of strings)
 
     def __init__(self, raw_resource_data, stacktrace_data):
