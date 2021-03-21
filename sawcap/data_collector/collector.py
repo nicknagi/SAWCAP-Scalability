@@ -9,7 +9,7 @@ def get_data_from_worker(worker_address):
         worker_data_response = requests.get(f"http://{worker_address}:{WORKER_DATA_API_PORT}/worker_data", timeout=2)
     except requests.Timeout:
         logging.error(f"Request to {worker_address} took too long, timing out and returning")
-        return {"threaddump_data": [""], "resource_data": [0.0 for _ in range(NUM_RESOURCES)]}
+        return {"threaddump_data": [""], "resource_data": "0,0"}
     if worker_data_response.status_code != 200:
         logging.error(f"Error collecting data from worker: {worker_address}")
         raise ConnectionError(f"Could not connect to worker: {worker_address}")
