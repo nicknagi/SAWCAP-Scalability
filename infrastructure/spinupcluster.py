@@ -91,7 +91,7 @@ def backoff_hdlr(details):
            f"{kwargs}")
 
 # Function used to wrap any digitalocean API calls to implement backoff when too many API requests
-@backoff.on_exception(backoff.expo, digitalocean.DataReadError, max_time=300, on_backoff=backoff_hdlr)
+@backoff.on_exception(backoff.expo, digitalocean.DataReadError, max_tries=20, on_backoff=backoff_hdlr, jitter=backoff.full_jitter)
 def wrap_digitalocean_call(func, *args, **kwargs):
     return func(*args, **kwargs)
 
@@ -327,7 +327,7 @@ def setup_worker(worker_droplet_to_setup):
     logger.info(f"Modified {worker_droplet_to_setup.name} Hadoop Configs")
 
 
-batch_size = min(len(worker_droplets), 10)
+batch_size = min(len(worker_droplets), 5)
 # Setup all workers
 # Weird bug fix as per issue: https://bugs.python.org/issue35629
 with contextlib.closing(mp.Pool(batch_size)) as pool:
