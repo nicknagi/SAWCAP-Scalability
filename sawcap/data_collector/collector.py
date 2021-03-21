@@ -7,6 +7,7 @@ import signal
 
 def init_worker():
     signal.signal(signal.SIGINT, signal.SIG_IGN)
+    signal.signal(signal.SIGTERM, signal.SIG_DFL)
 
 
 def get_data_from_worker(worker_address):
