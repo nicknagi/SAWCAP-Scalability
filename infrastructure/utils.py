@@ -220,8 +220,22 @@ def modify_hibench_conf_runner(runner_private_ip, workload_scale):
     filename = "/usr/local/HiBench/conf/hibench.conf"
     contents = read_file_via_sftp(runner_private_ip, filename)
 
+    parallelism = 20
+    if workload_scale == "huge":
+        parallelism = 500
+
     keyword = "hibench.scale.profile"
     replacement = f"{keyword}     {workload_scale}\n"
+
+    contents = _find_and_replace_line(keyword, replacement, contents)
+
+    keyword = "hibench.default.map.parallelism"
+    replacement = f"{keyword}     {parallelism}\n"
+
+    contents = _find_and_replace_line(keyword, replacement, contents)
+
+    keyword = "hibench.default.shuffle.parallelism"
+    replacement = f"{keyword}     {parallelism}\n"
 
     contents = _find_and_replace_line(keyword, replacement, contents)
 

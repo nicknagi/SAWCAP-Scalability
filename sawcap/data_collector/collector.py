@@ -44,7 +44,7 @@ class DataCollector:
             usages = line.split(',')
             for i in range(num_resources):
                 # Handle case where line has issues either something like cpu,  or cpu,mem,bogus
-                if usages[i] == "" or len(usages) != num_resources:
+                if len(usages) != num_resources or usages[i] == "":
                     # Use previous value of the resource value for the worker
                     resource_usage[i] += self.prev_resource_values[worker_index][i]
                     logging.error(f"line has an issue, using previous value, here is the problematic line: {line}")
