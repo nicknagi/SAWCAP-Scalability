@@ -208,8 +208,12 @@ def modify_spark_conf_runner(runner_private_ip, num_workers, workload_type):
 
     contents = read_file_via_sftp(runner_private_ip, filename)
 
+    num_executors = num_workers
+    if num_workers > 100:
+        num_executors = 100
+
     keyword = "hibench.yarn.executor.num"
-    replacement = f"{keyword}     {num_workers}\n"
+    replacement = f"{keyword}     {num_executors}\n"
 
     contents = _find_and_replace_line(keyword, replacement, contents)
 
@@ -222,7 +226,7 @@ def modify_hibench_conf_runner(runner_private_ip, workload_scale):
 
     parallelism = 20
     if workload_scale == "huge":
-        parallelism = 500
+        parallelism = 100
 
     keyword = "hibench.scale.profile"
     replacement = f"{keyword}     {workload_scale}\n"

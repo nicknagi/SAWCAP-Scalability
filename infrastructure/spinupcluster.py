@@ -6,6 +6,7 @@ import os
 import sys
 import time
 from datetime import timedelta
+import paramiko
 
 import digitalocean
 import backoff
@@ -50,6 +51,10 @@ parser.add_argument("-roc", "--run_original_code", action="store_true", help="Ru
 parser_arguments = parser.parse_args()
 
 num_workers = parser_arguments.numworkers
+if num_workers == 0 and parser_arguments.extend is False:
+    print("0 workers not allowed")
+    sys.exit()
+
 token = os.getenv("DIGITALOCEAN_ACCESS_TOKEN")
 
 # Set the VM size depending on workload size
@@ -58,12 +63,12 @@ if parser_arguments.workload_scale in ["large", "huge"]:
     VM_SIZE = "s-4vcpu-8gb"
 
 REGION = "tor1"
-WORKER_SNAPSHOT_ID = "79959117"  # v3
-RUNNER_SNAPSHOT_ID = "77183059"
-MASTER_SNAPSHOT_ID = "77183051"
+WORKER_SNAPSHOT_ID = "80901886"  # v5
+RUNNER_SNAPSHOT_ID = "80901837"  # v4
+MASTER_SNAPSHOT_ID = "80901793"  # v4
 WORKER_SIZE = VM_SIZE
-RUNNER_SIZE = "s-2vcpu-2gb"
-MASTER_SIZE = "s-2vcpu-4gb"
+RUNNER_SIZE = VM_SIZE
+MASTER_SIZE = VM_SIZE
 
 name_suffix = str(int(time.time())) if parser_arguments.uniqueid is None else parser_arguments.uniqueid
 master_name = "hadoop-master-" + name_suffix
@@ -302,6 +307,7 @@ logger.info("Modified master Hadoop configs")
 
 
 # ---------------------------- Modify Worker Files ---------------------------------------------------
+@backoff.on_exception(backoff.expo, paramiko.ssh_exception.SSHException, max_tries=10)
 def setup_worker(worker_droplet_to_setup):
     logger.info(f"Starting to wait for worker {worker_droplet_to_setup.name} to spin up")
     wait_until_droplet_ready(worker_droplet_to_setup)
