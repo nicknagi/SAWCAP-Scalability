@@ -2,10 +2,9 @@ import logging
 import socket
 import argparse
 import sys
+import statistics as stat
 from influxdb import InfluxDBClient
 from datetime import datetime, timezone
-from config import ORCHESTRATOR_PRIVATE_IP
-
 
 class MetricsQuery:
     def __init__(self):
@@ -24,12 +23,12 @@ class MetricsQuery:
     def utc_to_local(self, utc_dt):
         return utc_dt.replace(tzinfo=timezone.utc).astimezone(tz=None)
 
-    def full_report(self, id):
-        file = f'{id}_full_test_report.txt'
+    def full_report(self, id, experiment_name):
+        file = f'{id}_{experiment_name}_full_test_report.txt'
         with open(file, 'w') as f:
             sys.stdout = f
 
-            print(f"\n### Sawcap Resource Usage Stats ###")
+            print(f"\n### Sawcap Resource Usage Stats for {id}: {experiment_name} ##")
             print(f"\n  MAX")
             self.get_max_val(id, 'cpu')
             self.get_max_val(id, 'mem')
@@ -42,14 +41,14 @@ class MetricsQuery:
             self.get_min_val(id, 'download')
             self.get_min_val(id, 'upload')
 
+            print(f"\n### Prediction Stats ###\n")
+            self.get_prediction_frequency(id)
+
             print(f"\n  AVERAGE")
             self.get_avg_resources(id, 'cpu')
             self.get_avg_resources(id, 'mem')
             self.get_avg_resources(id, 'download')
             self.get_avg_resources(id, 'upload')
-
-            print(f"\n### Prediction Stats ###\n")
-            self.get_prediction_frequency(id)
 
             print(f"\n  AVERAGE")
             self.get_avg_predictions(id, 'actual_cpu')
@@ -99,9 +98,13 @@ class MetricsQuery:
         result = self.client.query(select_query)
         data_points = list(result.get_points(measurement='sawcap_resource_consumption'))
         print(f"  Average {metric} for {id} per 5 minutes")
+        data = []
         for entry in data_points:
             if entry['mean']:
+                data.append(entry['mean'])
                 print(f"{self.to_date(entry['time'])}: {entry['mean']:.5f}")
+        mean = stat.mean(data)
+        print(mean)
         print("")
 
     def get_avg_predictions(self, id, metric):
@@ -116,10 +119,13 @@ class MetricsQuery:
         result = self.client.query(select_query)
         data_points = list(result.get_points(measurement='predictions'))
         print(f"  Average {metric} for {id} per 5 minutes")
+        data = []
         for entry in data_points:
             if entry['mean']:
+                data.append(entry['mean'])
                 print(f"{self.to_date(entry['time'])}: {entry['mean']:.5f}")
-
+        mean = stat.mean(data)
+        print(mean)
         print("")
 
     def get_prediction_frequency(self, id):
@@ -150,10 +156,13 @@ class MetricsQuery:
         result = self.client.query(select_query)
         data_points = list(result.get_points(measurement=metric))
         print(f"  Average {metric} (seconds) for {id} per 5 minutes")
+        data = []
         for entry in data_points:
             if entry['mean']:
+                data.append(entry['mean'])
                 print(f"{self.to_date(entry['time'])}: {entry['mean']:.5f}")
-
+        mean = stat.mean(data)
+        print(mean)
         print("")
 
     def test(self, id):
@@ -170,8 +179,7 @@ if __name__ == "__main__":
     parser.add_argument("-m", "--metric", help="Metric to look for cpu, mem, download, upload etc.")
     parser.add_argument("-op", "--operation", help="Operation to perform max, min, avg, freq, latency etc.")
     parser.add_argument("--all", help="Generate full report", default=False, action='store_true')
-    parser.add_argument("--experiment_name", help="Name of the experiment to generate report for",
-                        default="default-experiment", type=str)
+    parser.add_argument("-name", "--experiment_name", help="Name of the experiment to generate report for")
     parser.add_argument("--test", help="Testing flag", default=False, action='store_true')
     args = parser.parse_args()
 
@@ -183,8 +191,8 @@ if __name__ == "__main__":
         metrics_query.test(args.uniqueid)
         exit()
 
-    if args.all:
-        metrics_query.full_report(args.uniqueid)
+    if args.all and args.experiment_name:
+        metrics_query.full_report(args.uniqueid, args.experiment_name)
         sys.stdout = original_stdout
         exit()
 
