@@ -23,70 +23,70 @@ class MetricsQuery:
     def utc_to_local(self, utc_dt):
         return utc_dt.replace(tzinfo=timezone.utc).astimezone(tz=None)
 
-    def full_report(self, id, experiment_name):
-        file = f'{id}_{experiment_name}_full_test_report.txt'
+    def full_report(self, id, name):
+        file = f'{id}_{name}_full_test_report.txt'
         with open(file, 'w') as f:
             sys.stdout = f
 
-            print(f"\n### Sawcap Resource Usage Stats for {id}: {experiment_name} ##")
+            print(f"\n### Sawcap Resource Usage Stats for {id}: {name} ##")
             print(f"\n  MAX")
-            self.get_max_val(id, 'cpu')
-            self.get_max_val(id, 'mem')
-            self.get_max_val(id, 'download')
-            self.get_max_val(id, 'upload')
+            self.get_max_val(id, 'cpu', name)
+            self.get_max_val(id, 'mem', name)
+            self.get_max_val(id, 'download', name)
+            self.get_max_val(id, 'upload', name)
 
             print(f"\n  MIN")
-            self.get_min_val(id, 'cpu')
-            self.get_min_val(id, 'mem')
-            self.get_min_val(id, 'download')
-            self.get_min_val(id, 'upload')
+            self.get_min_val(id, 'cpu', name)
+            self.get_min_val(id, 'mem', name)
+            self.get_min_val(id, 'download', name)
+            self.get_min_val(id, 'upload', name)
 
             print(f"\n### Prediction Stats ###\n")
             self.get_prediction_frequency(id)
 
             print(f"\n  AVERAGE")
-            self.get_avg_resources(id, 'cpu')
-            self.get_avg_resources(id, 'mem')
-            self.get_avg_resources(id, 'download')
-            self.get_avg_resources(id, 'upload')
+            self.get_avg_resources(id, 'cpu', name)
+            self.get_avg_resources(id, 'mem', name)
+            self.get_avg_resources(id, 'download', name)
+            self.get_avg_resources(id, 'upload', name)
 
             print(f"\n  AVERAGE")
-            self.get_avg_predictions(id, 'actual_cpu')
-            self.get_avg_predictions(id, 'predicted_cpu')
-            self.get_avg_predictions(id, 'actual_mem')
-            self.get_avg_predictions(id, 'predicted_mem')
+            self.get_avg_predictions(id, 'actual_cpu', name)
+            self.get_avg_predictions(id, 'predicted_cpu', name)
+            self.get_avg_predictions(id, 'actual_mem', name)
+            self.get_avg_predictions(id, 'predicted_mem', name)
 
             print(f"\n### Latency Stats ###\n")
-            self.get_latency_metrics(args.uniqueid, 'data_collection_latency')
-            self.get_latency_metrics(args.uniqueid, 'prediction_latency')
-            self.get_latency_metrics(args.uniqueid, 'ml_model_update_latency')
-            self.get_latency_metrics(args.uniqueid, 'anomaly_detection_latency')
+            self.get_latency_metrics(args.uniqueid, 'data_collection_latency', name)
+            self.get_latency_metrics(args.uniqueid, 'prediction_latency', name)
+            self.get_latency_metrics(args.uniqueid, 'ml_model_update_latency', name)
+            self.get_latency_metrics(args.uniqueid, 'anomaly_detection_latency', name)
 
-    def get_max_val(self, id, metric):
+    def get_max_val(self, id, metric, name):
         """
            id: uniqueId of experiment
            metric: metric to look for (eg. 'cpu')
         """
 
         select_query = f'SELECT MAX("{metric}") from "sawcap_resource_consumption" WHERE host=\'runner-{id}\'' \
-                       f' and experiment_name=\'{args.experiment_name}\';'
+                       f' and experiment_name=\'{name}\';'
         result = self.client.query(select_query)
         data_points = list(result.get_points(measurement='sawcap_resource_consumption'))
         print(f"Max {metric} for {id}: {data_points[0]['max']:.5f}")
 
-    def get_min_val(self, id, metric):
+    def get_min_val(self, id, metric, name):
         """
            id: uniqueId of experiment
            metric: metric to look for (eg. 'cpu')
         """
 
         select_query = f'SELECT MIN("{metric}") from "sawcap_resource_consumption" WHERE host=\'runner-{id}\'' \
-                       f' and experiment_name=\'{args.experiment_name}\';'
+                       f' and experiment_name=\'{name}\';'
         result = self.client.query(select_query)
         data_points = list(result.get_points(measurement='sawcap_resource_consumption'))
         print(f"Min {metric} for {id}: {data_points[0]['min']:.5f}")
 
-    def get_avg_resources(self, id, metric):
+    def get_avg_resources(self, id, metric, name):
         """ Group averages by 5min intervals
            id: uniqueId of experiment
            metric: metric to look for (eg. 'cpu')
@@ -94,7 +94,7 @@ class MetricsQuery:
 
         # average per 5 min
         select_query = f'SELECT MEAN("{metric}") from "sawcap_resource_consumption" WHERE host=\'runner-{id}\'' \
-                       f' and experiment_name=\'{args.experiment_name}\' GROUP BY time(5m);'
+                       f' and experiment_name=\'{name}\' GROUP BY time(5m);'
         result = self.client.query(select_query)
         data_points = list(result.get_points(measurement='sawcap_resource_consumption'))
         print(f"  Average {metric} for {id} per 5 minutes")
@@ -107,7 +107,7 @@ class MetricsQuery:
         print(mean)
         print("")
 
-    def get_avg_predictions(self, id, metric):
+    def get_avg_predictions(self, id, metric, name):
         """ Group averages by 5min intervals
            id: uniqueId of experiment
            metric: metric to look for (eg. 'cpu')
@@ -115,7 +115,7 @@ class MetricsQuery:
 
         # average per 5 min
         select_query = f'SELECT MEAN("{metric}") from "predictions" WHERE host=\'runner-{id}\'' \
-                       f' and experiment_name=\'{args.experiment_name}\' GROUP BY time(5m);'
+                       f' and experiment_name=\'{name}\' GROUP BY time(5m);'
         result = self.client.query(select_query)
         data_points = list(result.get_points(measurement='predictions'))
         print(f"  Average {metric} for {id} per 5 minutes")
@@ -145,14 +145,14 @@ class MetricsQuery:
         data_points = list(result.get_points(measurement='predictions'))
         print(f"Number of mem predictions for {id}: {data_points[0]['count']}")
 
-    def get_latency_metrics(self, id, metric):
+    def get_latency_metrics(self, id, metric, name):
         """ Get the latency of sawcap metrics
            id: uniqueId of experiment
         """
 
         # average per 5 min
         select_query = f'SELECT MEAN("latency") from "{metric}" WHERE host=\'runner-{id}\'' \
-                       f' and experiment_name=\'{args.experiment_name}\' GROUP BY time(5m);'
+                       f' and experiment_name=\'{name}\' GROUP BY time(5m);'
         result = self.client.query(select_query)
         data_points = list(result.get_points(measurement=metric))
         print(f"  Average {metric} (seconds) for {id} per 5 minutes")
