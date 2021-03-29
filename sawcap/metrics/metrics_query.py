@@ -165,6 +165,24 @@ class MetricsQuery:
         print(mean)
         print("")
 
+    def get_accuracy(self, id, metric, name):
+        acc_cpu
+        acc_mem
+        # average per 5 min
+        select_query = f'SELECT MEAN("{metric}") from "accuracy" WHERE host=\'runner-{id}\'' \
+                       f' and experiment_name=\'{name}\' GROUP BY time(5m);'
+        result = self.client.query(select_query)
+        data_points = list(result.get_points(measurement=metric))
+        print(f"  Average {metric} (seconds) for {id} per 5 minutes")
+        data = []
+        for entry in data_points:
+            if entry['mean']:
+                data.append(entry['mean'])
+                print(f"{self.to_date(entry['time'])}: {entry['mean']:.5f}")
+        mean = stat.mean(data)
+        print(mean)
+        print("")
+
     def test(self, id):
         select_query = f"SELECT * from \"sawcap_resource_consumption\" WHERE host='runner-{id}'" \
                        f" and experiment_name='{args.experiment_name}';"
@@ -208,3 +226,7 @@ if __name__ == "__main__":
         metrics_query.get_latency_metrics(args.uniqueid, args.metric)
     else:
         logging.error(f"Invalid input")
+
+
+acc_cpu
+acc_mem
