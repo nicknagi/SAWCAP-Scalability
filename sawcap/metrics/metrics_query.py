@@ -228,7 +228,3 @@ if __name__ == "__main__":
         metrics_query.get_latency_metrics(args.uniqueid, args.metric)
     else:
         logging.error(f"Invalid input")
-
-
-acc_cpu
-acc_mem
