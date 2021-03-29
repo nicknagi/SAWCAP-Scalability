@@ -57,10 +57,14 @@ class MetricsQuery:
             self.get_avg_predictions(id, 'predicted_mem', name)
 
             print(f"\n### Latency Stats ###\n")
-            self.get_latency_metrics(args.uniqueid, 'data_collection_latency', name)
-            self.get_latency_metrics(args.uniqueid, 'prediction_latency', name)
-            self.get_latency_metrics(args.uniqueid, 'ml_model_update_latency', name)
-            self.get_latency_metrics(args.uniqueid, 'anomaly_detection_latency', name)
+            self.get_latency_metrics(id, 'data_collection_latency', name)
+            self.get_latency_metrics(id, 'prediction_latency', name)
+            self.get_latency_metrics(id, 'ml_model_update_latency', name)
+            self.get_latency_metrics(id, 'anomaly_detection_latency', name)
+
+            print(f"\n### Accuracy Stats ###\n")
+            self.get_accuracy(id, 'acc_cpu', name)
+            self.get_accuracy(id, 'acc_mem', name)
 
     def get_max_val(self, id, metric, name):
         """
@@ -155,6 +159,22 @@ class MetricsQuery:
                        f' and experiment_name=\'{name}\' GROUP BY time(5m);'
         result = self.client.query(select_query)
         data_points = list(result.get_points(measurement=metric))
+        print(f"  Average {metric} (seconds) for {id} per 5 minutes")
+        data = []
+        for entry in data_points:
+            if entry['mean']:
+                data.append(entry['mean'])
+                print(f"{self.to_date(entry['time'])}: {entry['mean']:.5f}")
+        mean = stat.mean(data)
+        print(mean)
+        print("")
+
+    def get_accuracy(self, id, metric, name):
+        # average per 5 min
+        select_query = f'SELECT MEAN("{metric}") from "accuracy" WHERE host=\'runner-{id}\'' \
+                        f' and experiment_name=\'{name}\' GROUP BY time(5m);'
+        result = self.client.query(select_query)
+        data_points = list(result.get_points(measurement='accuracy'))
         print(f"  Average {metric} (seconds) for {id} per 5 minutes")
         data = []
         for entry in data_points:
