@@ -170,12 +170,11 @@ class MetricsQuery:
         print("")
 
     def get_accuracy(self, id, metric, name):
-
         # average per 5 min
         select_query = f'SELECT MEAN("{metric}") from "accuracy" WHERE host=\'runner-{id}\'' \
-                       f' and experiment_name=\'{name}\' GROUP BY time(5m);'
+                        f' and experiment_name=\'{name}\' GROUP BY time(5m);'
         result = self.client.query(select_query)
-        data_points = list(result.get_points(measurement=metric))
+        data_points = list(result.get_points(measurement='accuracy'))
         print(f"  Average {metric} (seconds) for {id} per 5 minutes")
         data = []
         for entry in data_points:
