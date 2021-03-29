@@ -270,6 +270,8 @@ def stacktrace_helper():
     # them and extract threaddump and resource usage information from them
     # returns a list containing the threaddump and resource info
 
+    start_time = time.time()
+
     # clear the prev buffer
     os.system("> ./threaddump_agg")
     os.system("> ./resource_agg")
@@ -295,6 +297,10 @@ def stacktrace_helper():
 
     resource_agg = parse_resource_agg("./resource_agg")
     functions = [i.strip() for i in functions]
+
+    end_time = time.time()
+    # Publish latency metrics for data collection latency
+    publish_data_collection_latency(end_time-start_time)
 
     return [set(functions), resource_agg]
 
@@ -545,6 +551,20 @@ def publish_accuracy(acc_cpu, acc_mem):
                 "fields": {
                     "acc_cpu": float(acc_cpu),
                     "acc_mem": float(acc_mem)
+                }
+            }
+        ]
+    client.write_points(json_body)
+
+def publish_data_collection_latency(latency):
+    json_body = [
+            {
+                "measurement": "data_collection_latency_old_code",
+                "tags": {
+                    "host": hostname
+                },
+                "fields": {
+                    "latency": float(latency)
                 }
             }
         ]
